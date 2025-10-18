@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "rental_accessories",
+  "info": {
+    "singularName": "rental-accessory",
+    "pluralName": "rental-accessories",
+    "displayName": "Rental Accessory",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "rental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::rental.rental",
+      "inversedBy": "rentalAccessories"
+    },
+    "accessory": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::accessory.accessory"
+    },
+    "quantity": {
+      "type": "integer",
+      "required": true,
+      "default": 1
+    },
+    "unitPrice": {
+      "type": "decimal",
+      "required": true
+    },
+    "totalPrice": {
+      "type": "decimal",
+      "required": true
+    }
+  }
+}
+

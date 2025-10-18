@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "accessories",
+  "info": {
+    "singularName": "accessory",
+    "pluralName": "accessories",
+    "displayName": "Accessory"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": { "type": "string", "required": true },
+    "price": { "type": "integer", "required": true }
+  }
+}
+
+
+

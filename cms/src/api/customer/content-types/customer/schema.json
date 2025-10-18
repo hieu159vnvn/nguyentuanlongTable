@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "customers",
+  "info": {
+    "singularName": "customer",
+    "pluralName": "customers",
+    "displayName": "Customer"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "customerCode": { "type": "uid", "required": true, "unique": true },
+    "name": { "type": "string", "required": true },
+    "phone": { "type": "string" },
+    "notes": { "type": "text" },
+    "remainingHours": { "type": "integer", "default": 0 },
+    "rentals": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::rental.rental",
+      "mappedBy": "customer"
+    },
+    "invoices": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::invoice.invoice",
+      "mappedBy": "customer"
+    }
+  }
+}
+
+

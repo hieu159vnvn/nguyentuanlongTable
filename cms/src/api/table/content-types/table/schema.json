@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tables",
+  "info": {
+    "singularName": "table",
+    "pluralName": "tables",
+    "displayName": "Table"
+  },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "code": { "type": "uid", "required": true, "unique": true },
+    "name": { "type": "string", "required": true },
+    "note": { "type": "text" },
+    "rentals": { "type": "relation", "relation": "oneToMany", "target": "api::rental.rental", "mappedBy": "table" }
+  }
+}
+
+
+

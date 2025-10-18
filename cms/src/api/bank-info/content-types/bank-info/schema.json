@@ -1,0 +1,22 @@
+{
+  "kind": "singleType",
+  "collectionName": "bank_info",
+  "info": {
+    "singularName": "bank-info",
+    "pluralName": "bank-infos",
+    "displayName": "Bank Info"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "bankName": { "type": "string", "required": true },
+    "accountNumber": { "type": "string", "required": true },
+    "accountName": { "type": "string", "required": true },
+    "qrImage": { "type": "media", "multiple": false, "allowedTypes": ["images"] }
+  }
+}
+
+
+
+

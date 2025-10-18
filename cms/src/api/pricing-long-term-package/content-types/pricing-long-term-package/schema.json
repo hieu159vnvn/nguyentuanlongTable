@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pricing_long_term_packages",
+  "info": {
+    "singularName": "pricing-long-term-package",
+    "pluralName": "pricing-long-term-packages",
+    "displayName": "Pricing Long Term Package"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": { "type": "string", "required": true },
+    "totalHours": { "type": "integer", "required": true },
+    "price": { "type": "integer", "required": true },
+    "bonusHours": { "type": "integer", "default": 0 }
+  }
+}
+
+
+

@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "rentals",
+  "info": {
+    "singularName": "rental",
+    "pluralName": "rentals",
+    "displayName": "Rental",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "rentals"
+    },
+    "table": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::table.table"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["short", "package"],
+      "required": true
+    },
+    "hours": {
+      "type": "float",
+      "required": true
+    },
+    "startAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "endAt": {
+      "type": "datetime"
+    },
+    "shortTermRate": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::pricing-short-term.pricing-short-term"
+    },
+    "package": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::pricing-long-term-package.pricing-long-term-package"
+    },
+    "rentalAccessories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::rental-accessory.rental-accessory",
+      "mappedBy": "rental"
+    },
+    "totalAmount": {
+      "type": "decimal"
+    },
+    "note": {
+      "type": "text"
+    }
+  }
+}

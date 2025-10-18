@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pricing_short_terms",
+  "info": {
+    "singularName": "pricing-short-term",
+    "pluralName": "pricing-short-terms",
+    "displayName": "Pricing Short Term"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "minHours": {
+      "type": "integer",
+      "required": true
+    },
+    "maxHours": {
+      "type": "integer"
+    },
+    "pricePerHour": {
+      "type": "decimal",
+      "required": true
+    }
+  }
+}
+

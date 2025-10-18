@@ -1,0 +1,56 @@
+{
+  "kind": "collectionType",
+  "collectionName": "invoices",
+  "info": {
+    "singularName": "invoice",
+    "pluralName": "invoices",
+    "displayName": "Invoice",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "invoices"
+    },
+    "rental": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::rental.rental"
+    },
+    "subtotal": {
+      "type": "decimal",
+      "required": true
+    },
+    "discount": {
+      "type": "decimal",
+      "default": 0
+    },
+    "total": {
+      "type": "decimal",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["unpaid", "paid", "cancelled"],
+      "default": "unpaid"
+    },
+    "paymentMethod": {
+      "type": "enumeration",
+      "enum": ["cash", "bank_transfer", "card"]
+    },
+    "notes": {
+      "type": "text"
+    }
+  }
+}
