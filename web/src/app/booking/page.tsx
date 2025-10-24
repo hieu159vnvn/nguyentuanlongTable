@@ -539,7 +539,10 @@ export default function BookingPage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Tiền thuê:</span>
-                        <span>{pricingResult.rentalCost?.toLocaleString()}đ</span>
+                        <span>{pricingResult.rentalCost?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+})}đ</span>
                       </div>
                     </>
                   )}
@@ -573,7 +576,10 @@ export default function BookingPage() {
                   }
                   <div className="flex justify-between">
                     <span>Tạm tính:</span>
-                    <span>{pricingResult?.subtotal?.toLocaleString()}đ</span>
+                    <span>{pricingResult?.subtotal?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+})}đ</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
