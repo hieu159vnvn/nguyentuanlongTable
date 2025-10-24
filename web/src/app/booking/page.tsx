@@ -222,7 +222,7 @@ export default function BookingPage() {
                                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                                 onClick={() => handleCustomerSelect(customer)}
                               >
-                                <div className="font-medium">{customer.name}-{customer.phone}</div>
+                                <div className="font-medium">{customer.name} {customer.phone ? `- ${customer.phone}` : ""}</div>
                                 <div className="text-gray-600 text-xs">
                                   {customer.phone && `${customer.phone} • `}
                                   Còn {formatMinutesToHoursMinutes(customer.remainingMinutes)}
