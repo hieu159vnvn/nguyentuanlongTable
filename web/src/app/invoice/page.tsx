@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import Image from 'next/image';
 
 type InvoiceRow = {
   id: number;
@@ -515,7 +516,7 @@ export default function InvoicePage() {
                         className="text-[#00203FFF] hover:text-[#001a33] mr-2"
                         onClick={() => viewInvoice(invoice.id, invoice.documentId)}
                       >
-                                        <img className="w-4 h-4" src="/images/search.png" alt=""/>
+                                        <Image className="w-4 h-4" src="/images/search.png" alt=""/>
 
                       </button>
                     </td>
@@ -782,7 +783,7 @@ export default function InvoicePage() {
                         )}
                       <div className="text-center">
                         {bankInfo.qrImage?.url ? (
-                          <img 
+                          <Image 
                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${bankInfo.qrImage.url}`}
                             alt="QR Code"
                             style={{ 

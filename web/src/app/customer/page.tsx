@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import Image from 'next/image';
 
 type CustomerRow = {
   id: number;
@@ -307,7 +308,7 @@ export default function CustomerPage() {
         <p className="text-sm text-black-800">
           {query ? (
             <>
-              Tìm thấy <strong>{filteredCustomers.length}</strong> khách hàng cho từ khóa "<strong>{query}</strong>"
+              Tìm thấy <strong>{filteredCustomers.length}</strong> khách hàng cho từ khóa &quot;<strong>{query}</strong>&quot;
             </>
           ) : (
             <>
@@ -348,7 +349,7 @@ export default function CustomerPage() {
                       onClick={() => startUpdateTime(r)}
                       title="Cập nhật giờ còn lại"
                     >
-                      <img src="/images/update.png" alt="" className="w-8 h-8" />
+                      <Image src="/images/update.png" alt="" className="w-8 h-8" />
                     </button>
                       <button
                         className="px-2 py-1 text-xs bg-[#00203FFF] text-white rounded hover:bg-blue-600 shadow-[3px_3px_black]"

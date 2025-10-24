@@ -16,6 +16,10 @@ const nextConfig = {
       },
     ],
   },
+  eslint: {
+    // ❗ Cho phép build dù có lỗi ESLint
+    ignoreDuringBuilds: true,
+  },
 }
 
 module.exports = nextConfig

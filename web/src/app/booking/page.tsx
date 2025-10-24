@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import Image from 'next/image';
 
 type Accessory = { id: number; name: string; price: number };
 type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
@@ -168,7 +169,7 @@ export default function BookingPage() {
                   setShowTableInfoModal(true);
                 }
               }}>
-                <img src="/images/table.png" alt="" className="w-10 h-10" />
+                <Image src="/images/table.png" alt="" className="w-10 h-10" />
                 <div className="font-bold text-lg">{t.name || t.code}</div>
                 <div className="text-sm">{t.status==='free' ? 'Trống' : 'Đang cho thuê'}</div>
               </button>
@@ -806,7 +807,7 @@ export default function BookingPage() {
                         )}
                       <div className="text-center">
                         {invoiceData.bankInfo.qrImage ? (
-                          <img 
+                          <Image 
                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${invoiceData.bankInfo.qrImage.url}`}
                             alt="QR Code"
                             style={{ 
