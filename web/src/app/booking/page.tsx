@@ -335,7 +335,7 @@ export default function BookingPage() {
                         accessories: selectedAccessories
                       };
                       const res = await api.startShortOnTable(selectedTable.id, payload);
-                      success(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
+                      alert(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
                       
                       // Nếu có mua gói thêm
                       if (selectedPackage) {
@@ -596,7 +596,10 @@ export default function BookingPage() {
                   
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Tổng cộng:</span>
-                    <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString()}đ</span>
+                    <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+})}đ</span>
                   </div>
                 </div>
 
