@@ -907,12 +907,12 @@ export default function BookingPage() {
       )}
 
       {/* Alert Modal */}
-      <AlertModal
+      {/* <AlertModal
         show={alert.show}
         message={alert.message}
         type={alert.type}
         onClose={hideAlert}
-      />
+      /> */}
     </div>
   );
 }
