@@ -326,7 +326,7 @@ export default function BookingPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base" onClick={async ()=>{
-                    if (!selectedCustomerId) return error('Vui lòng chọn khách hàng');
+                    if (!selectedCustomerId) return alert('Vui lòng chọn khách hàng');
                     
                     try {
                       // Bắt đầu thuê bàn - sẽ tính tiền theo thời gian thực
@@ -436,12 +436,12 @@ export default function BookingPage() {
                     onClick={async ()=>{
                       try {
                         if (!selectedTable?.rental?.customer?.id) {
-                          error('Không tìm thấy thông tin khách hàng');
+                          alert('Không tìm thấy thông tin khách hàng');
                           return;
                         }
                         
                         if (!selectedTable?.rental?.id) {
-                          error('Không tìm thấy thông tin rental');
+                          alert('Không tìm thấy thông tin rental');
                           return;
                         }
                         
@@ -456,7 +456,7 @@ export default function BookingPage() {
                         setShowPricingModal(true);
                       } catch (err) {
                         console.error('Error calculating pricing:', err);
-                        error('Lỗi tính tiền: ' + (err as Error).message);
+                        alert('Lỗi tính tiền: ' + (err as Error).message);
                       }
                     }}
                   >
@@ -880,7 +880,7 @@ export default function BookingPage() {
                           link.click();
                         }).catch(error => {
                           console.error('Error generating image:', error);
-                          error('Lỗi khi tạo ảnh: ' + error.message);
+                          alert('Lỗi khi tạo ảnh: ' + error.message);
                         });
                       });
                     }
