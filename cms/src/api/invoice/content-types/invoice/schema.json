@@ -23,6 +23,15 @@
       "target": "api::customer.customer",
       "inversedBy": "invoices"
     },
+    "customerName": {
+      "type": "string"
+    },
+    "customerPhone": {
+      "type": "string"
+    },
+    "customerCode": {
+      "type": "string"
+    },
     "rental": {
       "type": "relation",
       "relation": "oneToOne",
@@ -51,6 +60,25 @@
     },
     "notes": {
       "type": "text"
+    },
+    "serviceDetails": {
+      "type": "json"
+    },
+    "rentalStartAt": {
+      "type": "datetime"
+    },
+    "rentalEndAt": {
+      "type": "datetime"
+    },
+    "rentalMinutes": {
+      "type": "integer",
+      "default": 0
+    },
+    "rentalType": {
+      "type": "string"
+    },
+    "tableName": {
+      "type": "string"
     }
   }
 }

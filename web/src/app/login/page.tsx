@@ -16,6 +16,7 @@ export default function LoginPage() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
       const res = await loginWithEmailPassword(base, identifier, password);
+      
       setTokenCookie(res.jwt, remember ? 30 : 1);
       try { if (remember) localStorage.setItem('last-identifier', identifier); } catch {}
       const params = new URLSearchParams(window.location.search);

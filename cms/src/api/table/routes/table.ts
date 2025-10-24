@@ -10,3 +10,4 @@ export default factories.createCoreRouter('api::table.table', {
 
 
 
+

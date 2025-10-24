@@ -1,5 +1,6 @@
 "use client";
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -30,37 +31,51 @@ export default function Header() {
       <div className="flex items-center justify-between w-full">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0">
-          <img 
+          {/* <Image 
             src="https://img.freepik.com/free-vector/bird-colorful-logo-gradient-vector_343694-1365.jpg" 
             alt="logo" 
+            width={48}
+            height={48}
             className="w-9 sm:w-12" 
-          />
+          /> */}
         </Link>
 
         {/* Desktop Menu */}
         <nav className="hidden lg:flex items-center space-x-6">
-          {/* <Link href="/pricing" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
-            Bảng giá
-          </Link> */}
+          {hydrated && isAuthed && (
+            <>
               <Link href="/" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
-            Trang chủ
-          </Link>
-          <Link href="/booking" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
-            Quản lý bàn
-          </Link>
-          <Link href="/customer" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
-            Quản lý khách hàng
-          </Link>
+                Trang chủ
+              </Link>
+              <Link href="/booking" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
+                Quản lý bàn
+              </Link>
+              <Link href="/customer" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
+                Quản lý khách hàng
+              </Link>
+              <Link href="/invoice" className="hover:text-red-100 text-[#AEDFD1FF] font-medium text-[15px]">
+                Quản lý hóa đơn
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Desktop Auth */}
         <div className="hidden lg:flex items-center">
+          {hydrated && !isAuthed && (
+            <Link 
+              href="/login" 
+              className="px-4 py-2 text-sm rounded-full font-medium cursor-pointer tracking-wide text-[#AEDFD1FF] border border-[#AEDFD1FF] bg-transparent hover:bg-gray-50 transition-all"
+            >
+              Đăng nhập
+            </Link>
+          )}
           {hydrated && isAuthed && (
             <Link 
               href="/logout" 
               className="px-4 py-2 text-sm rounded-full font-medium cursor-pointer tracking-wide text-[#AEDFD1FF] border border-[#AEDFD1FF] bg-transparent hover:bg-gray-50 transition-all"
             >
-              Logout
+              Đăng xuất
             </Link>
           )}
         </div>
@@ -100,7 +115,7 @@ export default function Header() {
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-lg font-semibold">Menu</h2>
+                <h2 className="text-lg font-semibold"></h2>
                 <button
                   onClick={closeMobileMenu}
                   className="p-2 hover:text-gray-700"
@@ -114,48 +129,70 @@ export default function Header() {
               {/* Menu Items */}
               <nav className="flex-1 p-4">
                 <ul className="space-y-4">
-                  {/* <li>
-                    <Link 
-                      href="/pricing" 
-                      className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors"
-                      onClick={closeMobileMenu}
-                    >
-                      Bảng giá
-                    </Link>
-                  </li> */}
-                  <li>
-                    <Link 
-                      href="/booking" 
-                      className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors"
-                      onClick={closeMobileMenu}
-                    >
-                      Quản lý bàn
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      href="/customer" 
-                      className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors"
-                      onClick={closeMobileMenu}
-                    >
-                      Quản lý khách hàng
-                    </Link>
-                  </li>
+                  {hydrated && isAuthed && (
+                    <>
+                      <li>
+                        <Link 
+                          href="/" 
+                          className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors border shadow-[3px_6px]"
+                          onClick={closeMobileMenu}
+                        >
+                          Trang chủ
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          href="/booking" 
+                          className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors border shadow-[3px_6px]"
+                          onClick={closeMobileMenu}
+                        >
+                          Quản lý bàn
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          href="/customer" 
+                          className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors border shadow-[3px_6px]"
+                          onClick={closeMobileMenu}
+                        >
+                          Quản lý khách hàng
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          href="/invoice" 
+                          className="block px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors border shadow-[3px_6px]"
+                          onClick={closeMobileMenu}
+                        >
+                          Quản lý hóa đơn
+                        </Link>
+                      </li>
+                    </>
+                  )}
                 </ul>
               </nav>
 
               {/* Auth Section */}
-              {hydrated && isAuthed && (
-                <div className="p-4 border-t">
+              <div className="p-4 border-t">
+                {hydrated && !isAuthed && (
                   <Link 
-                    href="/logout" 
+                    href="/login" 
                     className="block w-full px-4 py-3 text-center text-sm rounded-lg font-medium text-[#AEDFD1FF] border border-[#AEDFD1FF] bg-transparent hover:bg-red-50 transition-all"
                     onClick={closeMobileMenu}
                   >
-                    Logout
+                    Đăng nhập
                   </Link>
-                </div>
-              )}
+                )}
+                {hydrated && isAuthed && (
+                  <Link 
+                    href="/logout" 
+                    className="block w-full px-4 py-3 text-center text-sm rounded-lg text-[#AEDFD1FF] bg-amber-600 border border-black text-black font-bold hover:bg-red-50 transition-all  border shadow-[3px_6px]"
+                    onClick={closeMobileMenu}
+                  >
+                    Đăng xuất
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>

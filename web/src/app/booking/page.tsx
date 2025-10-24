@@ -3,7 +3,25 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 
 type Accessory = { id: number; name: string; price: number };
-type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingHours: number };
+type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
+
+// Helper function to format minutes to hours and minutes
+function formatMinutesToHoursMinutes(minutes: number | undefined | null): string {
+  if (minutes === undefined || minutes === null || isNaN(minutes)) {
+    return '0 phút';
+  }
+  
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  
+  if (h === 0) {
+    return `${m} phút`;
+  } else if (m === 0) {
+    return `${h}h`;
+  } else {
+    return `${h}h ${m} phút`;
+  }
+}
 
 export default function BookingPage() {
   const [packages, setPackages] = useState<any[]>([]);
@@ -12,6 +30,8 @@ export default function BookingPage() {
   const [selectedAccessories, setSelectedAccessories] = useState<{accessoryId:number; quantity:number}[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [tables, setTables] = useState<any[]>([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
@@ -22,6 +42,30 @@ export default function BookingPage() {
   const [pricingResult, setPricingResult] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [discount, setDiscount] = useState<number>(0);
+  const [purchasedPackage, setPurchasedPackage] = useState<any>(null);
+
+  // Filter customers based on search term
+  const filteredCustomers = customers.filter(customer => {
+    const searchLower = customerSearchTerm.toLowerCase();
+    return customer.name.toLowerCase().includes(searchLower) || 
+           (customer.phone && customer.phone.includes(searchLower));
+  });
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomerId(customer.id);
+    setCustomerSearchTerm(`${customer.name} ${customer.phone ? `(${customer.phone})` : ''}`);
+    setShowCustomerDropdown(false);
+  };
+
+  // Handle search input change
+  const handleCustomerSearchChange = (value: string) => {
+    setCustomerSearchTerm(value);
+    setShowCustomerDropdown(true);
+    if (!value) {
+      setSelectedCustomerId('');
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -45,7 +89,7 @@ export default function BookingPage() {
           name: c.attributes?.name ?? c.name ?? '',
           customerCode: c.attributes?.customerCode ?? c.customerCode ?? '',
           phone: c.attributes?.phone ?? c.phone ?? '',
-          remainingHours: Number(c.attributes?.remainingHours ?? c.remainingHours ?? 0)
+          remainingMinutes: Number(c.attributes?.remainingMinutes ?? c.remainingMinutes ?? 0)
         }));
         setCustomers(normalizedCustomers);
       } catch (e) {
@@ -91,6 +135,8 @@ export default function BookingPage() {
 
   function resetRentalForm() {
     setSelectedCustomerId('');
+    setCustomerSearchTerm('');
+    setShowCustomerDropdown(false);
     setSelectedPackage(null);
     setSelectedAccessories([]);
     setDiscount(0);
@@ -105,15 +151,16 @@ export default function BookingPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-semibold">Danh sách bàn</h1>
+      {/* <h1 className="text-xl sm:text-2xl font-semibold">Quản lý bàn</h1> */}
 
       <section className="space-y-2 sm:space-y-3">
+        <div className="text-xl sm:text-xl font-bold">Danh sách bàn</div>
         {loadingTables ? (
           <div className="text-sm sm:text-base">Đang tải...</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
             {tables.map((t:any)=> (
-              <button key={t.id} className={`rounded flex flex-col items-center justify-center p-3 border text-left ${t.status==='free' ? 'bg-green-100 border-green-300 hover:bg-green-200' : 'bg-yellow-100 border-yellow-300 hover:bg-yellow-200'}`} onClick={()=>{
+              <button key={t.id} className={`rounded flex flex-col items-center justify-center p-3  border shadow-[3px_6px_rgb(35,157,20)] rounded-lg text-left ${t.status==='free' ? 'bg-green-100 border-green-300 hover:bg-green-200' : 'bg-yellow-100 shadow-[3px_6px_rgb(175,155,17)] border-yellow-300 hover:bg-yellow-200'}`} onClick={()=>{
                 setSelectedTable(t);
                 if (t.status === 'free') {
                   setShowRentalModal(true);
@@ -122,7 +169,7 @@ export default function BookingPage() {
                 }
               }}>
                 <img src="/images/table.png" alt="" className="w-10 h-10" />
-                <div className="font-medium">{t.name || t.code}</div>
+                <div className="font-bold text-lg">{t.name || t.code}</div>
                 <div className="text-sm">{t.status==='free' ? 'Trống' : 'Đang cho thuê'}</div>
               </button>
             ))}
@@ -134,10 +181,10 @@ export default function BookingPage() {
       {/* Rental Modal */}
       {showRentalModal && selectedTable && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[120vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Thuê bàn: {selectedTable.code || selectedTable.name}</h2>
+                <h2 className="text-xl font-semibold">Thuê bàn: {selectedTable.name || selectedTable.code}</h2>
                 <button 
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                   onClick={closeRentalModal}
@@ -148,27 +195,52 @@ export default function BookingPage() {
               
               <div className="space-y-3 sm:space-y-4">
                 <div className="grid gap-3 sm:gap-4">
-                  <label className="block">
+                  <div className="block">
                     <span className="text-sm font-medium">Chọn khách hàng *</span>
-                    <select 
-                      className="border rounded px-3 py-2 w-full text-sm sm:text-base" 
-                      value={selectedCustomerId} 
-                      onChange={e=>setSelectedCustomerId(Number(e.target.value))}
-                    >
-                      <option value="">-- Chọn khách hàng --</option>
-                      {customers.map(customer => (
-                        <option key={customer.id} value={customer.id}>
-                          {customer.name} {customer.phone ? `(${customer.phone})` : ''} - Còn {customer.remainingHours}h
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="border rounded px-3 py-2 w-full text-sm sm:text-base"
+                        placeholder="Tìm kiếm theo tên hoặc số điện thoại..."
+                        value={customerSearchTerm}
+                        onChange={(e) => handleCustomerSearchChange(e.target.value)}
+                        onFocus={() => setShowCustomerDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                      />
+                      
+                      {/* Dropdown results */}
+                      {showCustomerDropdown && customerSearchTerm && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {filteredCustomers.length > 0 ? (
+                            filteredCustomers.map(customer => (
+                              <div
+                                key={customer.id}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                onClick={() => handleCustomerSelect(customer)}
+                              >
+                                <div className="font-medium">{customer.name}</div>
+                                <div className="text-gray-600 text-xs">
+                                  {customer.phone && `${customer.phone} • `}
+                                  Còn {formatMinutesToHoursMinutes(customer.remainingMinutes)}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-gray-500 text-sm">
+                              Không tìm thấy khách hàng
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
                     {selectedCustomerId && (
                       <div className="text-xs text-gray-600 mt-1">
                         Khách hàng: {customers.find(c => c.id === selectedCustomerId)?.name} - 
-                        Giờ còn lại: {customers.find(c => c.id === selectedCustomerId)?.remainingHours}h
+                        Giờ còn lại: {formatMinutesToHoursMinutes(customers.find(c => c.id === selectedCustomerId)?.remainingMinutes || 0)}
                       </div>
                     )}
-                  </label>
+                  </div>
                   
                   
                   <div>
@@ -177,7 +249,7 @@ export default function BookingPage() {
                       {packages.map((p:any)=> (
                         <button
                           key={p.id}
-                          className={`px-3 py-2 border rounded text-sm ${selectedPackage === p.id ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'}`}
+                          className={`px-3 py-2 border rounded text-sm ${selectedPackage === p.id ? 'bg-[#00203FFF] text-white border-[#00203FFF]' : 'hover:bg-gray-50'}`}
                           onClick={() => setSelectedPackage(selectedPackage === p.id ? null : p.id)}
                         >
                           {p.name} - {p.price.toLocaleString()}đ
@@ -187,7 +259,7 @@ export default function BookingPage() {
                   </div>
                   
                   <div>
-                    <div className="text-sm font-bold mb-2 sm:mb-3">Phụ kiện (tùy chọn)</div>
+                    <div className="text-sm mb-2 sm:mb-3 font-bold">Phụ kiện (tùy chọn)</div>
                     <div className="space-y-2 max-h-60 sm:max-h-60 overflow-y-auto">
                       {accessories.map(a => {
                         const checked = selectedAccessories.find(s => s.accessoryId === a.id);
@@ -246,9 +318,10 @@ export default function BookingPage() {
                     )}
                   </div>
                 </div>
+
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <button className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-blue-600 text-sm sm:text-base" onClick={async ()=>{
+                  <button className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base" onClick={async ()=>{
                     if (!selectedCustomerId) return alert('Vui lòng chọn khách hàng');
                     
                     try {
@@ -258,17 +331,18 @@ export default function BookingPage() {
                         accessories: selectedAccessories
                       };
                       const res = await api.startShortOnTable(selectedTable.id, payload);
-                      alert(`Đã bắt đầu thuê tại bàn ${selectedTable.code || selectedTable.name}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
+                      alert(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
                       
                       // Nếu có mua gói thêm
                       if (selectedPackage) {
+                        const selectedPkg = packages.find(p => p.id === selectedPackage);
                         const packagePayload: any = { 
                           customerId: selectedCustomerId, 
-                          packageId: selectedPackage, 
-                          discount: 0 
+                          packageId: selectedPackage
                         };
-                        await api.purchasePackage(packagePayload);
-                        alert('Đã mua thêm gói cho khách hàng.');
+                        await api.purchasePackageOnly(packagePayload);
+                        setPurchasedPackage(selectedPkg); // Lưu thông tin gói
+                        alert('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
                       }
                       
                       // Refresh table status
@@ -293,10 +367,10 @@ export default function BookingPage() {
       {/* Table Info Modal */}
       {showTableInfoModal && selectedTable && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[120vh] overflow-y-auto shadow-xl">
+          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Thông tin bàn: {selectedTable.code || selectedTable.name}</h2>
+                <h2 className="text-xl font-semibold">Thông tin bàn: {selectedTable.name || selectedTable.code}</h2>
                 <button
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                   onClick={() => {
@@ -316,7 +390,7 @@ export default function BookingPage() {
                     <div><span className="font-medium">Tên:</span> {selectedTable?.rental?.customer?.name || 'N/A'}</div>
                     <div><span className="font-medium">Mã KH:</span> {selectedTable?.rental?.customer?.customerCode || 'N/A'}</div>
                     <div><span className="font-medium">SĐT:</span> {selectedTable?.rental?.customer?.phone || 'Chưa có'}</div>
-                    <div><span className="font-medium">Giờ còn lại:</span> {selectedTable?.rental?.customer?.remainingHours || 0}h</div>
+                    <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes(selectedTable?.rental?.customer?.remainingMinutes || 0)}</div>
                   </div>
                 </div>
 
@@ -354,7 +428,7 @@ export default function BookingPage() {
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                   <button 
-                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-blue-600 text-sm sm:text-base" 
+                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base" 
                     onClick={async ()=>{
                       try {
                         if (!selectedTable?.rental?.customer?.id) {
@@ -403,7 +477,7 @@ export default function BookingPage() {
       {/* Pricing Modal */}
       {showPricingModal && pricingResult && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[120vh] overflow-y-auto shadow-xl">
+          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Tạm tính tiền</h2>
@@ -420,7 +494,7 @@ export default function BookingPage() {
 
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded">
-                  <div className="font-medium mb-2">Thông tin khách hàng</div>
+                  <div className="font-bold mb-2">Thông tin khách hàng</div>
                   <div className="text-sm">
                     <div><span className="font-medium">Tên:</span> {selectedTable?.rental?.customer?.name}</div>
                     <div><span className="font-medium">Mã KH:</span> {selectedTable?.rental?.customer?.customerCode}</div>
@@ -429,7 +503,7 @@ export default function BookingPage() {
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded">
-                  <div className="font-medium mb-2">Thông tin thuê</div>
+                  <div className="font-bold mb-2">Thông tin thuê</div>
                   <div className="text-sm">
                     <div><span className="font-medium">Bàn:</span> {selectedTable?.name || selectedTable?.code}</div>
                     <div><span className="font-medium">Bắt đầu:</span> {new Date(selectedTable?.rental?.startAt).toLocaleString()}</div>
@@ -442,22 +516,22 @@ export default function BookingPage() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Giờ thuê thực tế:</span>
-                    <span>{pricingResult?.hours || 0}h</span>
+                    <span>Thời gian thuê thực tế:</span>
+                    <span>{formatMinutesToHoursMinutes(pricingResult?.minutes || 0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Giờ còn lại trong gói:</span>
-                    <span>{pricingResult?.remainingHours || 0}h</span>
+                    <span>Thời gian còn lại trong gói:</span>
+                    <span>{formatMinutesToHoursMinutes(pricingResult?.remainingMinutes || 0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Giờ sử dụng từ gói:</span>
-                    <span>{pricingResult?.usedPackageHours || 0}h</span>
+                    <span>Thời gian sử dụng từ gói:</span>
+                    <span>{formatMinutesToHoursMinutes(pricingResult?.usedPackageMinutes || 0)}</span>
                   </div>
-                  {pricingResult?.paidHours > 0 && (
+                  {pricingResult?.paidMinutes > 0 && (
                     <>
                       <div className="flex justify-between">
-                        <span>Giờ phải trả tiền:</span>
-                        <span>{pricingResult.paidHours}h ({pricingResult.hourlyRate?.toLocaleString()}đ/h)</span>
+                        <span>Thời gian phải trả tiền:</span>
+                        <span>{pricingResult.paidMinutes} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tiền thuê:</span>
@@ -465,7 +539,7 @@ export default function BookingPage() {
                       </div>
                     </>
                   )}
-                  {pricingResult?.paidHours === 0 && (
+                  {pricingResult?.paidMinutes === 0 && (
                     <div className="text-green-600 text-sm">✓ Sử dụng hoàn toàn từ gói (miễn phí)</div>
                   )}
                   
@@ -484,7 +558,15 @@ export default function BookingPage() {
                       </div>
                     </div>
                   )}
-                  
+                  {
+                    purchasedPackage?.name && (
+                      <div className="flex justify-between">
+                        <span>Gói:</span>
+                        <span>{purchasedPackage.name}</span>
+                        <span>{purchasedPackage.price.toLocaleString()}đ</span>
+                      </div>
+                    )
+                  }
                   <div className="flex justify-between">
                     <span>Tạm tính:</span>
                     <span>{pricingResult?.subtotal?.toLocaleString()}đ</span>
@@ -492,12 +574,12 @@ export default function BookingPage() {
                   
                   <div className="flex items-center gap-2">
                     <label className="text-sm">Giảm giá:</label>
-                    <input 
-                      type="number" 
-                      min={0} 
-                      className="border rounded px-2 py-1 w-24 text-sm" 
-                      value={discount} 
-                      onChange={e => setDiscount(Number(e.target.value))}
+                    <input
+                      type="number"
+                      min="0"
+                      className="border rounded px-3 py-2 w-24 text-sm"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value))}
                     />
                     <span className="text-sm">đ</span>
                   </div>
@@ -510,21 +592,55 @@ export default function BookingPage() {
 
                 <div className="flex gap-3 pt-4">
                   <button 
-                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#00203FFF]"
+                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
                     onClick={async () => {
                       try {
                         // Tính tiền và cập nhật trạng thái bàn
-                        const settleResult = await api.settleTable(selectedTable.id);
+                        const settleResult = await api.settleTable(selectedTable.id, discount);
                         
                         // Tạo hóa đơn với dữ liệu từ settle
                         const invoiceData = {
+                          code: settleResult?.invoice?.code || `INV-${Date.now()}`,
                           customer: selectedTable?.rental?.customer,
                           rental: {
                             hours: settleResult?.breakdown?.hours || 0,
+                            minutes: settleResult?.breakdown?.minutes || 0,
                             accessories: settleResult?.breakdown?.accessories || [],
+                            rentalCost: settleResult?.breakdown?.rentalCost || 0,
                             subtotal: settleResult?.breakdown?.subtotal || 0,
                             discount: discount,
-                            total: (settleResult?.breakdown?.subtotal || 0) - discount
+                            total: (settleResult?.breakdown?.total || 0)
+                          },
+                          package: settleResult?.breakdown?.package ? {
+                            name: settleResult.breakdown.package.name,
+                            price: settleResult.breakdown.packageTotal || 0,
+                            totalHours: settleResult.breakdown.package.totalHours,
+                            bonusHours: settleResult.breakdown.package.bonusHours
+                          } : null,
+                          serviceDetails: {
+                            rental: {
+                              type: 'short',
+                              minutes: settleResult?.breakdown?.minutes || 0,
+                              hours: settleResult?.breakdown?.hours || 0,
+                              startAt: selectedTable?.rental?.startAt,
+                              endAt: new Date().toISOString(),
+                              cost: settleResult?.breakdown?.rentalCost || 0
+                            },
+                            accessories: settleResult?.breakdown?.accessories || [],
+                            package: settleResult?.breakdown?.package ? {
+                              name: settleResult.breakdown.package.name,
+                              totalHours: settleResult.breakdown.package.totalHours,
+                              bonusHours: settleResult.breakdown.package.bonusHours,
+                              price: settleResult.breakdown.packageTotal || 0
+                            } : null,
+                            pricing: {
+                              rentalCost: settleResult?.breakdown?.rentalCost || 0,
+                              accessoriesTotal: settleResult?.breakdown?.accessoriesTotal || 0,
+                              packageTotal: settleResult?.breakdown?.packageTotal || 0,
+                              subtotal: settleResult?.breakdown?.subtotal || 0,
+                              discount: discount,
+                              total: settleResult?.breakdown?.total || 0
+                            }
                           },
                           bankInfo: settleResult?.bank || await api.getBankInfo()
                         };
@@ -589,12 +705,11 @@ export default function BookingPage() {
                 {/* Header */}
                 <div className="text-center border-b pb-4" style={{ borderBottom: '2px solid #000' }}>
                   <h1 className="text-2xl font-bold" style={{ fontSize: '24px', fontWeight: 'bold', color: '#000' }}>HÓA ĐƠN THUÊ BÀN</h1>
-                  <p className="text-sm text-gray-600" style={{ fontSize: '12px', color: '#666' }}>Mã hóa đơn: INV-{Date.now()}</p>
+                  <p className="text-sm text-gray-600" style={{ fontSize: '12px', color: '#666' }}>Mã hóa đơn: {invoiceData?.code || `INV-${Date.now()}`}</p>
                   <p className="text-sm text-gray-600" style={{ fontSize: '12px', color: '#666' }}>Ngày: {new Date().toLocaleDateString('vi-VN')}</p>
                 </div>
 
                 {/* Customer Info */}
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="font-semibold mb-2">Thông tin khách hàng:</h3>
                     <div className="text-sm space-y-1">
@@ -607,10 +722,10 @@ export default function BookingPage() {
                     <h3 className="font-semibold mb-2">Thông tin thuê:</h3>
                     <div className="text-sm space-y-1">
                       <div><span className="font-medium">Bàn:</span> {selectedTable?.name || selectedTable?.code}</div>
-                      <div><span className="font-medium">Thời gian:</span> {new Date().toLocaleString('vi-VN')}</div>
+                    <div><span className="font-medium">Thời gian bắt đầu:</span> {selectedTable?.rental?.startAt ? new Date(selectedTable.rental.startAt).toLocaleString('vi-VN') : 'N/A'}</div>
+                    {/* <div><span className="font-medium">Thời gian kết thúc:</span> {selectedTable?.rental?.endAt ? new Date(selectedTable.rental.endAt).toLocaleString('vi-VN') : 'N/A'}</div> */}
                     </div>
                   </div>
-                </div>
 
                 {/* Services */}
                 <div>
@@ -625,18 +740,15 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
                       <div>Thuê bàn</div>
-                      <div className="text-center">{invoiceData.rental.hours}h</div>
+                      <div className="text-center">{invoiceData.rental.minutes || Math.round(invoiceData.rental.hours * 60)} phút</div>
                       <div className="text-right">
-                        {invoiceData.rental.accessories?.length > 0 ? 
-                          `${Math.round((invoiceData.rental.subtotal - invoiceData.rental.accessories.reduce((sum: number, acc: any) => sum + acc.total, 0)) / invoiceData.rental.hours).toLocaleString()}đ/h` : 
-                          `${Math.round(invoiceData.rental.subtotal / invoiceData.rental.hours).toLocaleString()}đ/h`
+                        {invoiceData.rental.rentalCost > 0 ? 
+                          `${Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)).toLocaleString()}đ/phút` : 
+                          '0đ/phút'
                         }
                       </div>
                       <div className="text-right">
-                        {invoiceData.rental.accessories?.length > 0 ? 
-                          `${(invoiceData.rental.subtotal - invoiceData.rental.accessories.reduce((sum: number, acc: any) => sum + acc.total, 0)).toLocaleString()}đ` : 
-                          `${invoiceData.rental.subtotal.toLocaleString()}đ`
-                        }
+                        {invoiceData.rental.rentalCost.toLocaleString()}đ
                       </div>
                     </div>
                     
@@ -648,6 +760,16 @@ export default function BookingPage() {
                         <div className="text-right">{acc.total.toLocaleString()}đ</div>
                       </div>
                     ))}
+                    
+                    {/* Package purchase */}
+                    {invoiceData.package && (
+                      <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
+                        <div>{invoiceData.package.name}</div>
+                        <div className="text-center">1</div>
+                        <div className="text-right">{invoiceData.package.price.toLocaleString()}đ</div>
+                        <div className="text-right">{invoiceData.package.price.toLocaleString()}đ</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -655,15 +777,15 @@ export default function BookingPage() {
                 <div className="space-y-2" style={{ marginTop: '16px' }}>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Tạm tính:</span>
-                    <span>{invoiceData.rental.subtotal.toLocaleString()}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString() || '0'}đ</span>
                   </div>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Giảm giá:</span>
-                    <span>{invoiceData.rental.discount.toLocaleString()}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.discount?.toLocaleString() || '0'}đ</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px' }}>
                     <span>TỔNG CỘNG:</span>
-                    <span>{invoiceData.rental.total.toLocaleString()}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString() || '0'}đ</span>
                   </div>
                 </div>
 
@@ -719,10 +841,11 @@ export default function BookingPage() {
                 <div className="text-center text-sm text-gray-600" style={{ textAlign: 'center', fontSize: '12px', color: '#666', marginTop: '16px' }}>
                   Cảm ơn quý khách đã sử dụng dịch vụ!
                 </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                 <button 
-                  className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-blue-600"
+                  className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
                   onClick={() => {
                     // Tạo canvas để xuất ảnh với options để tránh lỗi CSS
                     const element = document.getElementById('invoice-content');
@@ -764,7 +887,6 @@ export default function BookingPage() {
                 >
                   Đóng
                 </button>
-              </div>
               </div>
               </div>
             </div>

@@ -83,7 +83,7 @@ export default ({ strapi }: { strapi: any }) => ({
 
     // Get customer info
     const customer = await strapi.entityService.findOne('api::customer.customer', customerId, {
-      fields: ['id', 'name', 'remainingHours']
+      fields: ['id', 'name', 'remainingMinutes']
     });
     if (!customer) {
       ctx.throw(404, 'Customer not found');
@@ -107,37 +107,50 @@ export default ({ strapi }: { strapi: any }) => ({
       ctx.throw(404, 'Rental not found');
     }
 
-    // Calculate actual rental hours
+    // Calculate actual rental minutes
     const startTime = new Date(rental.startAt);
     const now = new Date();
     const elapsedMs = now.getTime() - startTime.getTime();
-    const actualHours = Math.ceil(elapsedMs / (1000 * 60 * 60)); // Round up to hours
+    const actualMinutes = Math.ceil(elapsedMs / (1000 * 60)); // Round up to minutes
+    const actualHours = actualMinutes / 60; // Convert to hours for display
 
     let rentalCost = 0;
-    let usedPackageHours = 0;
-    let paidHours = 0;
-    let hourlyRate = 0;
+    let usedPackageMinutes = 0;
+    let paidMinutes = 0;
+    let minuteRate = 0;
 
-    if (actualHours <= customer.remainingHours) {
-      // Use package hours completely
-      usedPackageHours = actualHours;
-      paidHours = 0;
+    // Get customer remaining minutes directly
+    const remainingMinutes = customer.remainingMinutes || 0;
+
+    if (actualMinutes <= remainingMinutes) {
+      // Use package minutes completely
+      usedPackageMinutes = actualMinutes;
+      paidMinutes = 0;
     } else {
-      // Use remaining package hours + pay for excess
-      usedPackageHours = customer.remainingHours;
-      paidHours = actualHours - customer.remainingHours;
+      // Use remaining package minutes + pay for excess
+      usedPackageMinutes = remainingMinutes;
+      paidMinutes = actualMinutes - remainingMinutes;
       
-      // Calculate hourly rate based on paid hours
-      if (paidHours >= 1 && paidHours <= 2) {
-        hourlyRate = 50000;
-      } else if (paidHours >= 3 && paidHours <= 9) {
-        hourlyRate = 45000;
-      } else if (paidHours > 9) {
-        hourlyRate = 45000;
+      // Calculate minute rate based on paid minutes
+      // 50k/hour = 833.33/minute, 45k/hour = 750/minute
+      const paidHours = paidMinutes / 60;
+      if (paidHours <= 2) {
+        minuteRate = 50000 / 60; // 833.33/minute
+      } else {
+        minuteRate = 45000 / 60; // 750/minute
       }
       
-      rentalCost = paidHours * hourlyRate;
+      rentalCost = paidMinutes * minuteRate;
     }
+
+    console.log('Pricing calculation:', {
+      customerId,
+      actualMinutes,
+      remainingMinutes,
+      usedPackageMinutes,
+      paidMinutes,
+      rentalCost
+    });
 
     // Calculate accessories total
     let accessoriesTotal = 0;
@@ -156,22 +169,71 @@ export default ({ strapi }: { strapi: any }) => ({
       }
     }
 
-    const subtotal = rentalCost + accessoriesTotal;
+    // Find package purchased by customer after rental started
+    let packageInfo = null;
+    let packageTotal = 0;
+    
+    try {
+      const packageRentals = await strapi.entityService.findMany('api::rental.rental', {
+        filters: {
+          customer: customerId,
+          type: 'package',
+          startAt: { $gte: rental.startAt } // Package purchased after rental started
+        },
+        fields: ['id', 'startAt', 'minutes', 'totalAmount'],
+        populate: {
+          package: {
+            fields: ['name', 'totalHours', 'bonusHours', 'price']
+          }
+        },
+        sort: { startAt: 'desc' },
+        limit: 1
+      });
+
+      if (packageRentals && packageRentals.length > 0) {
+        const packageRental = packageRentals[0];
+        packageInfo = {
+          name: packageRental.package?.name || 'N/A',
+          totalHours: packageRental.package?.totalHours || 0,
+          bonusHours: packageRental.package?.bonusHours || 0,
+          price: packageRental.package?.price || 0
+        };
+        packageTotal = packageRental.package?.price || 0;
+        
+        console.log('Package found:', {
+          packageName: packageInfo.name,
+          packagePrice: packageTotal,
+          packageRentalId: packageRental.id
+        });
+      }
+    } catch (error) {
+      console.log('Error finding package:', error);
+    }
+
+    const subtotal = rentalCost + accessoriesTotal + packageTotal;
 
     ctx.body = {
+      minutes: actualMinutes,
       hours: actualHours,
-      remainingHours: customer.remainingHours,
-      usedPackageHours,
-      paidHours,
-      hourlyRate,
+      remainingMinutes: remainingMinutes,
+      remainingHours: Math.floor(remainingMinutes / 60) + (remainingMinutes % 60) / 60,
+      usedPackageMinutes,
+      usedPackageHours: usedPackageMinutes / 60,
+      paidMinutes,
+      paidHours: paidMinutes / 60,
+      minuteRate,
+      hourlyRate: minuteRate * 60,
       rentalCost,
       accessoriesTotal,
+      packageTotal,
       subtotal,
       accessories: accessoriesList,
+      package: packageInfo,
       customer: {
         id: customer.id,
         name: customer.name,
-        remainingHours: customer.remainingHours
+        remainingMinutes: customer.remainingMinutes,
+        remainingHours: Math.floor(customer.remainingMinutes / 60) + (customer.remainingMinutes % 60) / 60
       }
     };
   }

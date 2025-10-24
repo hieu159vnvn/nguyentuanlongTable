@@ -8,7 +8,9 @@ export default ({ strapi }: { strapi: any }) => ({
     if (resolvedCustomerId) {
       const check = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['id'] }).catch(() => null);
       if (!check) {
-        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: String(resolvedCustomerId), name: String(resolvedCustomerId) } });
+        // Generate unique customerCode
+        const timestamp = Date.now();
+        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: `KH${timestamp}`, name: `Khách ${timestamp}` } });
         resolvedCustomerId = created.id;
       }
     }
@@ -62,7 +64,9 @@ export default ({ strapi }: { strapi: any }) => ({
     if (resolvedCustomerId) {
       const check = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['id'] }).catch(() => null);
       if (!check) {
-        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: String(resolvedCustomerId), name: String(resolvedCustomerId) } });
+        // Generate unique customerCode
+        const timestamp = Date.now();
+        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: `KH${timestamp}`, name: `Khách ${timestamp}` } });
         resolvedCustomerId = created.id;
       }
     }
@@ -86,11 +90,11 @@ export default ({ strapi }: { strapi: any }) => ({
     const discountValue = Math.max(0, Math.min(discount, subtotal));
     const total = subtotal - discountValue;
 
-    // Update customer remaining hours
-    const addHours = (pkg.totalHours || 0) + (pkg.bonusHours || 0);
-    const customer = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['remainingHours'] });
-    const newRemaining = (customer?.remainingHours || 0) + addHours;
-    await strapi.entityService.update('api::customer.customer', resolvedCustomerId, { data: { remainingHours: newRemaining } });
+    // Update customer remaining minutes
+    const addMinutes = ((pkg.totalHours || 0) + (pkg.bonusHours || 0)) * 60;
+    const customer = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['remainingMinutes'] });
+    const newRemaining = (customer?.remainingMinutes || 0) + addMinutes;
+    await strapi.entityService.update('api::customer.customer', resolvedCustomerId, { data: { remainingMinutes: newRemaining } });
 
     // Create rental record representing package purchase (no timespan)
     const rental = await strapi.entityService.create('api::rental.rental', {
@@ -99,25 +103,119 @@ export default ({ strapi }: { strapi: any }) => ({
         customer: resolvedCustomerId,
         package: packageId,
         hours: pkg.totalHours,
+        minutes: addMinutes, // Add minutes field
         totalAmount: total,
+        startAt: new Date().toISOString(),
+        endAt: new Date().toISOString(), // Package purchase is immediate
         note
       }
     });
+
+    // Get customer info for invoice
+    const customerInfo = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, {
+      fields: ['name', 'phone', 'customerCode']
+    });
+
+    // Prepare service details for package purchase
+    const serviceDetails = {
+      package: {
+        name: pkg.name,
+        totalHours: pkg.totalHours,
+        bonusHours: pkg.bonusHours,
+        price: pkg.price
+      },
+      accessories: [],
+      pricing: {
+        rentalCost: 0,
+        accessoriesTotal: 0,
+        subtotal,
+        discount: discountValue,
+        total
+      }
+    };
 
     // Create invoice
     const invoice = await strapi.entityService.create('api::invoice.invoice', {
       data: {
         code: `INV-${Date.now()}`,
         customer: resolvedCustomerId,
+        customerName: customerInfo?.name || 'Khách vãng lai',
+        customerPhone: customerInfo?.phone || '',
+        customerCode: customerInfo?.customerCode || '',
         rental: rental.id,
         subtotal,
         discount: discountValue,
         total,
-        status: 'unpaid'
+        status: 'unpaid',
+        serviceDetails,
+        rentalStartAt: rental.startAt,
+        rentalEndAt: rental.endAt,
+        rentalMinutes: addMinutes,
+        rentalType: 'package',
+        tableName: 'Mua gói'
       }
     });
 
     ctx.body = { rental, invoice, remainingHours: newRemaining };
+  },
+
+  async purchasePackageOnly(ctx) {
+    const { customerId, customerCode, packageId, note } = ctx.request.body || {};
+    if ((!customerId && !customerCode) || !packageId) ctx.throw(400, 'customerId/customerCode and packageId are required');
+
+    let resolvedCustomerId = customerId;
+    if (resolvedCustomerId) {
+      const check = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['id'] }).catch(() => null);
+      if (!check) {
+        // Generate unique customerCode
+        const timestamp = Date.now();
+        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: `KH${timestamp}`, name: `Khách ${timestamp}` } });
+        resolvedCustomerId = created.id;
+      }
+    }
+    if (!resolvedCustomerId && customerCode) {
+      const existing = await strapi.entityService.findMany('api::customer.customer', { filters: { customerCode: customerCode }, fields: ['id'] });
+      if (existing?.[0]?.id) {
+        resolvedCustomerId = existing[0].id;
+      } else {
+        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode, name: customerCode } });
+        resolvedCustomerId = created.id;
+      }
+    }
+
+    // Load package
+    const pkg = await strapi.entityService.findOne('api::pricing-long-term-package.pricing-long-term-package', packageId, {
+      fields: ['totalHours', 'price', 'bonusHours', 'name']
+    });
+    if (!pkg) ctx.throw(404, 'Package not found');
+
+    // Update customer remaining minutes
+    const addMinutes = ((pkg.totalHours || 0) + (pkg.bonusHours || 0)) * 60;
+    const customer = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['remainingMinutes'] });
+    const newRemaining = (customer?.remainingMinutes || 0) + addMinutes;
+    await strapi.entityService.update('api::customer.customer', resolvedCustomerId, { data: { remainingMinutes: newRemaining } });
+
+    // Create rental record representing package purchase (no timespan)
+    const rental = await strapi.entityService.create('api::rental.rental', {
+      data: {
+        type: 'package',
+        customer: resolvedCustomerId,
+        package: packageId,
+        hours: pkg.totalHours,
+        minutes: addMinutes,
+        totalAmount: pkg.price,
+        startAt: new Date().toISOString(),
+        endAt: new Date().toISOString(), // Package purchase is immediate
+        note
+      }
+    });
+
+    ctx.body = { 
+      rental, 
+      package: pkg,
+      remainingMinutes: newRemaining,
+      message: 'Package purchased successfully - invoice will be created on settle'
+    };
   }
   ,
   async tableStatus(ctx) {
@@ -145,6 +243,7 @@ export default ({ strapi }: { strapi: any }) => ({
     const tableId = Number(ctx.params.tableId);
     const { customerId, customerCode, accessories = [], discount = 0, note } = ctx.request.body || {};
     console.log('startShortOnTable - Request body:', ctx.request.body);
+    console.log('startShortOnTable - Discount received:', discount);
     console.log('startShortOnTable - TableId:', tableId);
     if (!tableId || ((!customerId && !customerCode))) ctx.throw(400, 'Missing params');
     
@@ -152,7 +251,9 @@ export default ({ strapi }: { strapi: any }) => ({
     if (resolvedCustomerId) {
       const check = await strapi.entityService.findOne('api::customer.customer', resolvedCustomerId, { fields: ['id'] }).catch(() => null);
       if (!check) {
-        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: String(resolvedCustomerId), name: String(resolvedCustomerId) } });
+        // Generate unique customerCode
+        const timestamp = Date.now();
+        const created = await strapi.entityService.create('api::customer.customer', { data: { customerCode: `KH${timestamp}`, name: `Khách ${timestamp}` } });
         resolvedCustomerId = created.id;
       }
     }
@@ -179,7 +280,9 @@ export default ({ strapi }: { strapi: any }) => ({
       table: tableId,
       startAt: now,
       hours: 0, // Will be calculated on settle
+      minutes: 0, // Will be calculated on settle
       totalAmount: 0, // Will be calculated on settle
+      discount: discount, // Store discount for later use
       note
     };
     
@@ -189,6 +292,7 @@ export default ({ strapi }: { strapi: any }) => ({
     }
     
     console.log('startShortOnTable - Creating rental with data:', rentalData);
+    console.log('startShortOnTable - Discount in rentalData:', rentalData.discount);
     
     const rental = await strapi.entityService.create('api::rental.rental', {
       data: rentalData
@@ -219,7 +323,10 @@ export default ({ strapi }: { strapi: any }) => ({
   ,
   async settleTable(ctx) {
     const tableId = Number(ctx.params.tableId);
+    const { discount = 0 } = ctx.request.body || {};
     if (!tableId) ctx.throw(400, 'tableId required');
+    
+    console.log('settleTable - Discount received:', discount);
     
     // find active rental
     const rentals = await strapi.entityService.findMany('api::rental.rental', { 
@@ -237,47 +344,57 @@ export default ({ strapi }: { strapi: any }) => ({
     const startAt = new Date(rental.startAt);
     const endTime = new Date(endAt);
     
-    // Calculate actual hours used (rounded up to next hour)
+    // Calculate actual minutes used (rounded up to next minute)
     const diffMs = endTime.getTime() - startAt.getTime();
-    const diffHours = Math.ceil(diffMs / (1000 * 60 * 60)); // Round up to next hour
-    const actualHours = Math.max(1, diffHours); // Minimum 1 hour
+    const actualMinutes = Math.ceil(diffMs / (1000 * 60)); // Round up to next minute
+    const actualHours = actualMinutes / 60; // Convert to hours for display
     
     // Normalize customer id (could be populated object or id)
     const customerId = (rental as any)?.customer?.id ?? (rental as any)?.customer;
-    // Get customer info for remaining hours
+    // Get customer info for remaining minutes
     const customer = await strapi.entityService.findOne('api::customer.customer', customerId, {
-      fields: ['remainingHours']
+      fields: ['remainingMinutes']
     });
-    const remainingHours = customer?.remainingHours || 0;
+    const remainingMinutes = customer?.remainingMinutes || 0;
     
-    // Calculate cost based on new logic
+    // Calculate cost based on new logic (by minutes)
     let totalCost = 0;
-    let usedPackageHours = 0;
-    let paidHours = 0;
+    let usedPackageMinutes = 0;
+    let paidMinutes = 0;
     
-    if (actualHours <= remainingHours) {
-      // Use package hours completely
-      usedPackageHours = actualHours;
-      paidHours = 0;
+    if (actualMinutes <= remainingMinutes) {
+      // Use package minutes completely
+      usedPackageMinutes = actualMinutes;
+      paidMinutes = 0;
     } else {
-      // Use remaining package hours + pay for extra hours
-      usedPackageHours = remainingHours;
-      paidHours = actualHours - remainingHours;
+      // Use remaining package minutes + pay for extra minutes
+      usedPackageMinutes = remainingMinutes;
+      paidMinutes = actualMinutes - remainingMinutes;
       
-      // Calculate cost based on paid hours
-      if (paidHours >= 1 && paidHours <= 2) {
-        totalCost = paidHours * 50000;
-      } else if (paidHours >= 3 && paidHours <= 9) {
-        totalCost = paidHours * 45000;
-      } else if (paidHours > 9) {
-        totalCost = paidHours * 45000;
+      // Calculate cost based on paid minutes
+      // 50k/hour = 833.33/minute, 45k/hour = 750/minute
+      const paidHours = paidMinutes / 60;
+      let minuteRate = 0;
+      if (paidHours <= 2) {
+        minuteRate = 50000 / 60; // 833.33/minute
+      } else {
+        minuteRate = 45000 / 60; // 750/minute
       }
+      totalCost = paidMinutes * minuteRate;
     }
     
-    // Update customer remaining hours
-    const newRemainingHours = Math.max(0, remainingHours - usedPackageHours);
+    // Update customer remaining minutes directly
+    const newRemainingMinutes = Math.max(0, remainingMinutes - usedPackageMinutes);
+    
+    console.log('Package minutes update:', {
+      customerId,
+      originalRemainingMinutes: remainingMinutes,
+      usedPackageMinutes,
+      newRemainingMinutes
+    });
+    
     await strapi.entityService.update('api::customer.customer', customerId, {
-      data: { remainingHours: newRemainingHours }
+      data: { remainingMinutes: newRemainingMinutes }
     });
     
     // Compute accessories lines
@@ -290,28 +407,99 @@ export default ({ strapi }: { strapi: any }) => ({
     const accessoriesTotal = lines.reduce((s:number, l:any)=> s + (l.total||0), 0);
     
     const subtotal = totalCost + accessoriesTotal;
-    const discount = 0; // Could be applied from rental data
-    const total = subtotal - discount;
+    const finalDiscount = Number(discount || 0); // Get discount from request
+    const total = subtotal - finalDiscount;
+    
+    console.log('settleTable - Request discount:', discount);
+    console.log('settleTable - Final discount:', finalDiscount);
+    console.log('settleTable - Subtotal:', subtotal, 'Total:', total);
     
     // Update rental with calculated values
     const updated = await strapi.entityService.update('api::rental.rental', rental.id, { 
       data: { 
         endAt,
-        hours: actualHours,
+        hours: actualHours, // Keep hours for backward compatibility
+        minutes: actualMinutes, // Add minutes field
         totalAmount: total
       } 
     });
     
+    // Get customer info for invoice
+    const customerInfo = await strapi.entityService.findOne('api::customer.customer', customerId, {
+      fields: ['name', 'phone', 'customerCode']
+    });
+
+    // Get table name
+    const tableName = (rental as any)?.table?.name || (rental as any)?.table?.code || 'Bàn không xác định';
+
+    // Find package purchase for this customer (if any)
+    const packageRentals = await strapi.entityService.findMany('api::rental.rental', {
+      filters: { 
+        customer: customerId, 
+        type: 'package',
+        startAt: { $gte: rental.startAt } // Package purchased after rental started
+      },
+      populate: { package: true },
+      sort: { startAt: 'desc' },
+      limit: 1
+    });
+    
+    const packageInfo = packageRentals?.[0]?.package;
+    const packagePrice = packageInfo ? packageRentals[0].totalAmount : 0;
+    const finalSubtotal = subtotal + packagePrice;
+    const finalTotal = finalSubtotal - finalDiscount;
+
+    // Prepare service details
+    const serviceDetails = {
+      rental: {
+        type: rental.type,
+        minutes: actualMinutes,
+        hours: actualHours,
+        startAt: rental.startAt,
+        endAt: endAt,
+        cost: totalCost
+      },
+      accessories: lines.map(line => ({
+        name: line.name,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        total: line.total
+      })),
+      package: packageInfo ? {
+        name: packageInfo.name,
+        totalHours: packageInfo.totalHours,
+        bonusHours: packageInfo.bonusHours,
+        price: packagePrice
+      } : null,
+      pricing: {
+        rentalCost: totalCost,
+        accessoriesTotal,
+        packageTotal: packagePrice,
+        subtotal: finalSubtotal,
+        discount: finalDiscount,
+        total: finalTotal
+      }
+    };
+
     // Create invoice
     const invoice = await strapi.entityService.create('api::invoice.invoice', {
       data: {
         code: `INV-${Date.now()}`,
         customer: customerId,
+        customerName: customerInfo?.name || 'Khách vãng lai',
+        customerPhone: customerInfo?.phone || '',
+        customerCode: customerInfo?.customerCode || '',
         rental: rental.id,
-        subtotal,
-        discount,
-        total,
-        status: 'unpaid'
+        subtotal: finalSubtotal,
+        discount: finalDiscount,
+        total: finalTotal,
+        status: 'unpaid',
+        serviceDetails,
+        rentalStartAt: rental.startAt,
+        rentalEndAt: endAt,
+        rentalMinutes: actualMinutes,
+        rentalType: rental.type,
+        tableName
       }
     });
     
@@ -323,17 +511,24 @@ export default ({ strapi }: { strapi: any }) => ({
       rental: updated,
       invoice,
       breakdown: { 
+        minutes: actualMinutes,
         hours: actualHours,
-        remainingHours: newRemainingHours,
-        usedPackageHours,
-        paidHours,
-        hourlyRate: paidHours > 0 ? (paidHours <= 2 ? 50000 : 45000) : 0,
+        remainingMinutes: newRemainingMinutes,
+        remainingHours: Math.floor(newRemainingMinutes / 60) + (newRemainingMinutes % 60) / 60,
+        usedPackageMinutes,
+        usedPackageHours: usedPackageMinutes / 60,
+        paidMinutes,
+        paidHours: paidMinutes / 60,
+        minuteRate: paidMinutes > 0 ? (paidMinutes / 60 <= 2 ? 50000 / 60 : 45000 / 60) : 0,
+        hourlyRate: paidMinutes > 0 ? (paidMinutes / 60 <= 2 ? 50000 : 45000) : 0,
         rentalCost: totalCost,
         accessories: lines, 
-        accessoriesTotal, 
-        subtotal, 
-        discount, 
-        total 
+        accessoriesTotal,
+        package: packageInfo,
+        packageTotal: packagePrice,
+        subtotal: finalSubtotal, 
+        discount: finalDiscount, 
+        total: finalTotal 
       },
       bank
     };

@@ -5,3 +5,4 @@ export default factories.createCoreController('api::pricing-short-term.pricing-s
 
 
 
+

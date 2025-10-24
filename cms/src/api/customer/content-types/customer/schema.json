@@ -7,14 +7,15 @@
     "displayName": "Customer"
   },
   "options": {
-    "draftAndPublish": false
+    "draftAndPublish": false,
+    "populateCreatorFields": false
   },
   "attributes": {
     "customerCode": { "type": "uid", "required": true, "unique": true },
     "name": { "type": "string", "required": true },
     "phone": { "type": "string" },
     "notes": { "type": "text" },
-    "remainingHours": { "type": "integer", "default": 0 },
+    "remainingMinutes": { "type": "integer", "default": 0 },
     "rentals": {
       "type": "relation",
       "relation": "oneToMany",

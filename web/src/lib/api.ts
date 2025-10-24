@@ -21,15 +21,27 @@ async function request(path: string, init?: RequestInit) {
     const text = await res.text();
     throw new Error(`Request failed ${res.status}: ${text}`);
   }
-  return res.json();
+  
+  // Handle empty responses (like DELETE with 204 No Content)
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return null;
+  }
+  
+  const text = await res.text();
+  if (!text.trim()) {
+    return null;
+  }
+  
+  return JSON.parse(text);
 }
 
 async function requestFallback(paths: string[], init?: RequestInit) {
-  let lastErr: any;
+  let lastErr: unknown;
   for (const p of paths) {
     try {
       return await request(p, init);
-    } catch (e: any) {
+    } catch (e: unknown) {
       lastErr = e;
     }
   }
@@ -39,16 +51,25 @@ async function requestFallback(paths: string[], init?: RequestInit) {
 export const api = {
   getShortTerms: () => request('/api/pricing-short-terms'),
   getLongTermPackages: () => request('/api/pricing-long-term-packages'),
-  calculatePricing: (body: any) => request('/api/pricing/calculate', { method: 'POST', body: JSON.stringify(body) }),
-  calculateRentalPricing: (body: any) => request('/api/pricing/calculate-rental', { method: 'POST', body: JSON.stringify(body) }),
-  createShortRental: (body: any) => request('/api/orders/short-rental', { method: 'POST', body: JSON.stringify(body) }),
-  purchasePackage: (body: any) => request('/api/orders/purchase-package', { method: 'POST', body: JSON.stringify(body) }),
+  calculatePricing: (body: Record<string, unknown>) => request('/api/pricing/calculate', { method: 'POST', body: JSON.stringify(body) }),
+  calculateRentalPricing: (body: Record<string, unknown>) => request('/api/pricing/calculate-rental', { method: 'POST', body: JSON.stringify(body) }),
+  createShortRental: (body: Record<string, unknown>) => request('/api/orders/short-rental', { method: 'POST', body: JSON.stringify(body) }),
+  purchasePackage: (body: Record<string, unknown>) => request('/api/orders/purchase-package', { method: 'POST', body: JSON.stringify(body) }),
+  purchasePackageOnly: (body: Record<string, unknown>) => request('/api/orders/purchase-package-only', { method: 'POST', body: JSON.stringify(body) }),
   getBankInfo: () => request('/api/bank-info'),
   getTablesStatus: () => request('/api/tables/status'),
-  startShortOnTable: (tableId: number, body: any) => request(`/api/tables/${tableId}/start-short`, { method: 'POST', body: JSON.stringify(body) }),
-  settleTable: (tableId: number) => request(`/api/tables/${tableId}/settle`, { method: 'POST' }),
-  createCustomer: (body: any) => request('/api/customers', { method: 'POST', body: JSON.stringify(body) }),
-  getCustomers: (query?: string) => request(`/api/customers${query || ''}`)
+  startShortOnTable: (tableId: number, body: Record<string, unknown>) => request(`/api/tables/${tableId}/start-short`, { method: 'POST', body: JSON.stringify(body) }),
+  settleTable: (tableId: number, discount: number = 0) => request(`/api/tables/${tableId}/settle`, { 
+    method: 'POST',
+    body: JSON.stringify({ discount })
+  }),
+  createCustomer: (body: Record<string, unknown>) => request('/api/customers', { method: 'POST', body: JSON.stringify(body) }),
+  updateCustomer: (id: number, body: Record<string, unknown>) => request(`/api/customers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCustomer: (id: number) => request(`/api/customers/${id}`, { method: 'DELETE' }),
+  getCustomers: (query?: string) => request(`/api/customers${query || ''}`),
+  getInvoices: (query?: string) => request(`/api/invoices${query || ''}`),
+  getInvoice: (id: number | string) => request(`/api/invoices/${id}`),
+  getInvoiceByDocumentId: (documentId: string) => request(`/api/invoices/${documentId}`)
 };
 
 export const apiFallback = {

@@ -5,3 +5,4 @@ export default factories.createCoreRouter('api::rental.rental');
 
 
 
+

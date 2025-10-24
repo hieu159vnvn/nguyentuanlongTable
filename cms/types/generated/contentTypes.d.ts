@@ -536,6 +536,7 @@ export interface ApiCustomerCustomer extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+    populateCreatorFields: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -555,7 +556,7 @@ export interface ApiCustomerCustomer extends Struct.CollectionTypeSchema {
     notes: Schema.Attribute.Text;
     phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    remainingHours: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    remainingMinutes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     rentals: Schema.Attribute.Relation<'oneToMany', 'api::rental.rental'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -582,6 +583,9 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::customer.customer'>;
+    customerCode: Schema.Attribute.String;
+    customerName: Schema.Attribute.String;
+    customerPhone: Schema.Attribute.String;
     discount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -595,9 +599,15 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
     >;
     publishedAt: Schema.Attribute.DateTime;
     rental: Schema.Attribute.Relation<'oneToOne', 'api::rental.rental'>;
+    rentalEndAt: Schema.Attribute.DateTime;
+    rentalMinutes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    rentalStartAt: Schema.Attribute.DateTime;
+    rentalType: Schema.Attribute.String;
+    serviceDetails: Schema.Attribute.JSON;
     status: Schema.Attribute.Enumeration<['unpaid', 'paid', 'cancelled']> &
       Schema.Attribute.DefaultTo<'unpaid'>;
     subtotal: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    tableName: Schema.Attribute.String;
     total: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -641,6 +651,7 @@ export interface ApiPricingShortTermPricingShortTerm
   extends Struct.CollectionTypeSchema {
   collectionName: 'pricing_short_terms';
   info: {
+    description: '';
     displayName: 'Pricing Short Term';
     pluralName: 'pricing-short-terms';
     singularName: 'pricing-short-term';
@@ -723,6 +734,7 @@ export interface ApiRentalRental extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::customer.customer'>;
+    discount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     endAt: Schema.Attribute.DateTime;
     hours: Schema.Attribute.Float & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -731,6 +743,7 @@ export interface ApiRentalRental extends Struct.CollectionTypeSchema {
       'api::rental.rental'
     > &
       Schema.Attribute.Private;
+    minutes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     note: Schema.Attribute.Text;
     package: Schema.Attribute.Relation<
       'manyToOne',

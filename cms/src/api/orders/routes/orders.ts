@@ -13,6 +13,12 @@ export default {
       config: { auth: false }
     },
     {
+      method: 'POST',
+      path: '/orders/purchase-package-only',
+      handler: 'orders.purchasePackageOnly',
+      config: { auth: false }
+    },
+    {
       method: 'GET',
       path: '/tables/status',
       handler: 'orders.tableStatus',

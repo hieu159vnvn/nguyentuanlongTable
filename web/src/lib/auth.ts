@@ -1,6 +1,11 @@
 export type AuthResponse = {
   jwt: string;
-  user: any;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    [key: string]: unknown;
+  };
 };
 
 export const AUTH_COOKIE_NAME = 'token';
@@ -23,17 +28,42 @@ export function clearTokenCookie() {
 }
 
 export async function loginWithEmailPassword(baseUrl: string, identifier: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${baseUrl}/api/auth/local`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifier, password })
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Login failed');
+  try {
+    const res = await fetch(`${baseUrl}/api/auth/local`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ identifier, password })
+    });
+    
+    if (!res.ok) {
+      let errorMessage = 'Login failed';
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.error?.message || errorData.message || errorMessage;
+      } catch {
+        const text = await res.text();
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const data = await res.json();
+    return data as AuthResponse;
+  } catch (error: unknown) {
+    // Handle network errors, timeouts, etc.
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Kết nối quá lâu, vui lòng thử lại');
+      }
+      if (error.message.includes('fetch')) {
+        throw new Error('Lỗi kết nối, vui lòng kiểm tra mạng');
+      }
+    }
+    throw error;
   }
-  const data = await res.json();
-  return data as AuthResponse;
 }
 
 export function logout() {

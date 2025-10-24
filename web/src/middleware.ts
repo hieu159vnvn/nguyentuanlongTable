@@ -1,12 +1,16 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-const PROTECTED_PATHS = ['/booking', '/customer'];
+// All paths except login and logout are protected
+const PUBLIC_PATHS = ['/login', '/logout'];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
-  if (!isProtected) return NextResponse.next();
+  
+  // Allow public paths
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  if (isPublic) return NextResponse.next();
 
+  // Check authentication for all other paths
   const token = req.cookies.get('token')?.value;
   if (!token) {
     const url = req.nextUrl.clone();
@@ -18,7 +22,16 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/booking/:path*', '/customer/:path*']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ]
 };
 
 

@@ -18,6 +18,65 @@ export default factories.createCoreController('api::customer.customer', ({ strap
     return await strapi.entityService.create('api::customer.customer', {
       data: data
     });
+  },
+
+  async update(ctx) {
+    const { id } = ctx.params;
+    const { data } = ctx.request.body;
+    
+    try {
+      // First check if customer exists
+      const customer = await strapi.entityService.findOne('api::customer.customer', id);
+      if (!customer) {
+        return ctx.notFound('Customer not found');
+      }
+
+      // Update the customer
+      const result = await strapi.entityService.update('api::customer.customer', id, {
+        data: data
+      });
+      
+      return { data: result };
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      return ctx.internalServerError('Failed to update customer');
+    }
+  },
+
+  async delete(ctx) {
+    const { id } = ctx.params;
+    
+    try {
+      // First check if customer exists
+      const customer = await strapi.entityService.findOne('api::customer.customer', id);
+      if (!customer) {
+        return ctx.notFound('Customer not found');
+      }
+
+      // Check for related rentals
+      const rentals = await strapi.entityService.findMany('api::rental.rental', {
+        filters: { customer: id }
+      });
+
+      // Check for related invoices
+      const invoices = await strapi.entityService.findMany('api::invoice.invoice', {
+        filters: { customer: id }
+      });
+
+      if (rentals.length > 0 || invoices.length > 0) {
+        return ctx.badRequest('Cannot delete customer with existing rentals or invoices');
+      }
+
+      // Delete the customer
+      const result = await strapi.entityService.delete('api::customer.customer', id);
+      
+      // Return 204 No Content
+      ctx.status = 204;
+      return null;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      return ctx.internalServerError('Failed to delete customer');
+    }
   }
 }));
 

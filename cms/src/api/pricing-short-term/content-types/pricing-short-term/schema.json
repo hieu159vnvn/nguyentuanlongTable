@@ -4,11 +4,13 @@
   "info": {
     "singularName": "pricing-short-term",
     "pluralName": "pricing-short-terms",
-    "displayName": "Pricing Short Term"
+    "displayName": "Pricing Short Term",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
     "minHours": {
       "type": "integer",
@@ -23,4 +25,3 @@
     }
   }
 }
-

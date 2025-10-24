@@ -32,6 +32,10 @@
       "type": "float",
       "required": true
     },
+    "minutes": {
+      "type": "integer",
+      "default": 0
+    },
     "startAt": {
       "type": "datetime",
       "required": true
@@ -60,6 +64,10 @@
     },
     "note": {
       "type": "text"
+    },
+    "discount": {
+      "type": "decimal",
+      "default": 0
     }
   }
 }
