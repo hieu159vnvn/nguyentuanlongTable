@@ -17,7 +17,7 @@ export default [
         'http://127.0.0.1:3000',
         'http://0.0.0.0:3000',
         'http://192.168.1.69:3000',
-        'https://nguyentuanlong-table-q89x3ozgl.vercel.app',
+        'https://nguyentuanlong-table.vercel.app',
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
       keepHeaderOnError: true,
