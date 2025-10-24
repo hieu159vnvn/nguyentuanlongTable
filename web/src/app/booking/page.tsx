@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import AlertModal from '@/components/AlertModal';
-import { useAlert } from '@/hooks/useAlert';
+// import { useAlert } from '@/hooks/useAlert';
 
 type Accessory = { id: number; name: string; price: number };
 type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
@@ -27,7 +27,7 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
 }
 
 export default function BookingPage() {
-  const { alert, success, error, hideAlert } = useAlert();
+  // const { alert, success, error, hideAlert } = useAlert();
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -222,7 +222,7 @@ export default function BookingPage() {
                                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                                 onClick={() => handleCustomerSelect(customer)}
                               >
-                                <div className="font-medium">{customer.name}</div>
+                                <div className="font-medium">{customer.name}-{customer.phone}</div>
                                 <div className="text-gray-600 text-xs">
                                   {customer.phone && `${customer.phone} • `}
                                   Còn {formatMinutesToHoursMinutes(customer.remainingMinutes)}
@@ -346,7 +346,7 @@ export default function BookingPage() {
                         };
                         await api.purchasePackageOnly(packagePayload);
                         setPurchasedPackage(selectedPkg); // Lưu thông tin gói
-                        success('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
+                        alert('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
                       }
                       
                       // Refresh table status
@@ -357,7 +357,7 @@ export default function BookingPage() {
                       closeRentalModal();
                     } catch (err) {
                       console.error('Error starting rental:', err);
-                      error('Lỗi khi bắt đầu thuê bàn');
+                      alert('Lỗi khi bắt đầu thuê bàn');
                     }
                   }}>Bắt đầu thuê</button>
                 </div>
@@ -668,10 +668,10 @@ export default function BookingPage() {
                           setTables(Array.isArray(status) ? status : status?.data || []);
                         } catch {}
                         
-                        success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                        alert(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
                       } catch (err) {
                         console.error('Error creating invoice:', err);
-                        error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+                        alert('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
                       }
                     }}
                   >
