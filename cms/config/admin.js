@@ -17,9 +17,8 @@ export default ({ env }) => ({
     nps: env.bool('FLAG_NPS', true),
     promoteEE: env.bool('FLAG_PROMOTE_EE', true),
   },
-  // ⚠️ Phần thêm vào để fix lỗi cookie secure
-  cookie: {
-    secure: false,
-    sameSite: 'lax',
+  // ⚙️ THÊM ĐOẠN NÀY
+  cookies: {
+    secure: env.bool('ADMIN_SECURE_COOKIES', false), // set false để Strapi không yêu cầu HTTPS
   },
 });
