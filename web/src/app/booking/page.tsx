@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
+import AlertModal from '@/components/AlertModal';
+import { useAlert } from '@/hooks/useAlert';
 
 type Accessory = { id: number; name: string; price: number };
 type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
@@ -25,6 +27,7 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
 }
 
 export default function BookingPage() {
+  const { alert, success, error, hideAlert } = useAlert();
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -323,7 +326,7 @@ export default function BookingPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base" onClick={async ()=>{
-                    if (!selectedCustomerId) return alert('Vui lòng chọn khách hàng');
+                    if (!selectedCustomerId) return error('Vui lòng chọn khách hàng');
                     
                     try {
                       // Bắt đầu thuê bàn - sẽ tính tiền theo thời gian thực
@@ -332,7 +335,7 @@ export default function BookingPage() {
                         accessories: selectedAccessories
                       };
                       const res = await api.startShortOnTable(selectedTable.id, payload);
-                      alert(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
+                      success(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
                       
                       // Nếu có mua gói thêm
                       if (selectedPackage) {
@@ -343,7 +346,7 @@ export default function BookingPage() {
                         };
                         await api.purchasePackageOnly(packagePayload);
                         setPurchasedPackage(selectedPkg); // Lưu thông tin gói
-                        alert('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
+                        success('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
                       }
                       
                       // Refresh table status
@@ -352,9 +355,9 @@ export default function BookingPage() {
                         setTables(Array.isArray(status) ? status : status?.data || []);
                       } catch {}
                       closeRentalModal();
-                    } catch (error) {
-                      console.error('Error starting rental:', error);
-                      alert('Lỗi khi bắt đầu thuê bàn');
+                    } catch (err) {
+                      console.error('Error starting rental:', err);
+                      error('Lỗi khi bắt đầu thuê bàn');
                     }
                   }}>Bắt đầu thuê</button>
                 </div>
@@ -433,12 +436,12 @@ export default function BookingPage() {
                     onClick={async ()=>{
                       try {
                         if (!selectedTable?.rental?.customer?.id) {
-                          alert('Không tìm thấy thông tin khách hàng');
+                          error('Không tìm thấy thông tin khách hàng');
                           return;
                         }
                         
                         if (!selectedTable?.rental?.id) {
-                          alert('Không tìm thấy thông tin rental');
+                          error('Không tìm thấy thông tin rental');
                           return;
                         }
                         
@@ -451,9 +454,9 @@ export default function BookingPage() {
                         setPricingResult(pricingData);
                         setShowTableInfoModal(false);
                         setShowPricingModal(true);
-                      } catch (error) {
-                        console.error('Error calculating pricing:', error);
-                        alert('Lỗi tính tiền: ' + (error as Error).message);
+                      } catch (err) {
+                        console.error('Error calculating pricing:', err);
+                        error('Lỗi tính tiền: ' + (err as Error).message);
                       }
                     }}
                   >
@@ -656,10 +659,10 @@ export default function BookingPage() {
                           setTables(Array.isArray(status) ? status : status?.data || []);
                         } catch {}
                         
-                        alert(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
-                      } catch (error) {
-                        console.error('Error creating invoice:', error);
-                        alert('Lỗi khi tạo hóa đơn: ' + (error as Error).message);
+                        success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                      } catch (err) {
+                        console.error('Error creating invoice:', err);
+                        error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
                       }
                     }}
                   >
@@ -868,7 +871,7 @@ export default function BookingPage() {
                           link.click();
                         }).catch(error => {
                           console.error('Error generating image:', error);
-                          alert('Lỗi khi tạo ảnh: ' + error.message);
+                          error('Lỗi khi tạo ảnh: ' + error.message);
                         });
                       });
                     }
@@ -893,6 +896,14 @@ export default function BookingPage() {
             </div>
           </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        show={alert.show}
+        message={alert.message}
+        type={alert.type}
+        onClose={hideAlert}
+      />
     </div>
   );
 }

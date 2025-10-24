@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
+import AlertModal from '@/components/AlertModal';
+import { useAlert } from '@/hooks/useAlert';
 
 type CustomerRow = {
   id: number;
