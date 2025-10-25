@@ -308,7 +308,7 @@ export default function BookingPage() {
                           return (
                             <div key={acc.accessoryId} className="flex justify-between text-xs mb-1">
                               <span>{accessory?.name} x {acc.quantity}</span>
-                              <span>{(accessory?.price || 0) * acc.quantity}đ</span>
+                              <span>{((accessory?.price || 0) * acc.quantity).toLocaleString()}đ</span>
                             </div>
                           );
                         })}
@@ -535,7 +535,7 @@ export default function BookingPage() {
                     <>
                       <div className="flex justify-between">
                         <span>Thời gian phải trả tiền:</span>
-                        <span>{pricingResult.paidMinutes} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
+                        <span>{formatMinutesToHoursMinutes(pricingResult.paidMinutes)} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tiền thuê:</span>
@@ -753,7 +753,7 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
                       <div>Thuê bàn</div>
-                      <div className="text-center">{invoiceData.rental.minutes || Math.round(invoiceData.rental.hours * 60)} phút</div>
+                      <div className="text-center">{formatMinutesToHoursMinutes(invoiceData.rental.minutes)}</div>
                       <div className="text-right">
                         {invoiceData.rental.rentalCost > 0 ? 
                           `${Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)).toLocaleString()}đ/phút` : 
@@ -761,7 +761,10 @@ export default function BookingPage() {
                         }
                       </div>
                       <div className="text-right">
-                        {invoiceData.rental.rentalCost.toLocaleString()}đ
+                        {invoiceData.rental.rentalCost.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+})}đ
                       </div>
                     </div>
                     
@@ -790,7 +793,10 @@ export default function BookingPage() {
                 <div className="space-y-2" style={{ marginTop: '16px' }}>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Tạm tính:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString() || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+}) || '0'}đ</span>
                   </div>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Giảm giá:</span>
@@ -798,7 +804,10 @@ export default function BookingPage() {
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px' }}>
                     <span>TỔNG CỘNG:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString() || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+}) || '0'}đ</span>
                   </div>
                 </div>
 
