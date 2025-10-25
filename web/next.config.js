@@ -14,6 +14,11 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'nguyentuanlongtable-production.up.railway.app',
+        pathname: '/uploads/**',
+      },
     ],
   },
   eslint: {
