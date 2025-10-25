@@ -535,7 +535,8 @@ export default function BookingPage() {
                     <>
                       <div className="flex justify-between">
                         <span>Thời gian phải trả tiền:</span>
-                        <span>{formatMinutesToHoursMinutes(pricingResult.paidMinutes)} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
+                        <span>{formatMinutesToHoursMinutes(pricingResult.paidMinutes)} ({pricingResult.minuteRate?.toFixed(0) == 833 ? "50,000" : "45,000"}đ/giờ)
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tiền thuê:</span>
@@ -755,16 +756,27 @@ export default function BookingPage() {
                       <div>Thuê bàn</div>
                       <div className="text-center">{formatMinutesToHoursMinutes(invoiceData.rental.minutes)}</div>
                       <div className="text-right">
-                        {invoiceData.rental.rentalCost > 0 ? 
+                        {/* {invoiceData.rental.rentalCost > 0 ? 
                           `${Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)).toLocaleString()}đ/phút` : 
                           '0đ/phút'
-                        }
+                        } */}
+                       {invoiceData.rental.rentalCost > 0
+                          ? `${
+                              (
+                                Math.round(
+                                  invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)
+                                ) === 833
+                                  ? 50000
+                                  : 45000
+                              ).toLocaleString('vi-VN')
+                            }đ/phút`
+                          : '0đ/phút'}
                       </div>
                       <div className="text-right">
                         {invoiceData.rental.rentalCost.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ
+                          minimumFractionDigits: 0, // không hiển thị phần thập phân
+                          maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+                        })}đ
                       </div>
                     </div>
                     

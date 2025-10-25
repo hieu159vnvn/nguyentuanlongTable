@@ -375,7 +375,7 @@ export default ({ strapi }: { strapi: any }) => ({
       // 50k/hour = 833.33/minute, 45k/hour = 750/minute
       const paidHours = paidMinutes / 60;
       let minuteRate = 0;
-      if (paidHours <= 2) {
+      if (paidHours <= 3) {
         minuteRate = 50000 / 60; // 833.33/minute
       } else {
         minuteRate = 45000 / 60; // 750/minute
