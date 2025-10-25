@@ -711,8 +711,8 @@ export default function InvoicePage() {
                                   ? 50000
                                   : 45000
                               ).toLocaleString('vi-VN')
-                            }đ/phút`
-                          : '0đ/phút'}
+                            }đ/giờ`
+                          : '0đ/giờ'}
                         </div>
                       <div className="text-right">{selectedInvoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
   minimumFractionDigits: 0, // không hiển thị phần thập phân

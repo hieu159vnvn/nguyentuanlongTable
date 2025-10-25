@@ -769,8 +769,8 @@ export default function BookingPage() {
                                   ? 50000
                                   : 45000
                               ).toLocaleString('vi-VN')
-                            }đ/phút`
-                          : '0đ/phút'}
+                            }đ/giờ`
+                          : '0đ/giờ'}
                       </div>
                       <div className="text-right">
                         {invoiceData.rental.rentalCost.toLocaleString('en-US', {
