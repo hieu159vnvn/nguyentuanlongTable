@@ -713,7 +713,7 @@ export default function InvoicePage() {
                               ).toLocaleString('vi-VN')
                             }đ/phút`
                           : '0đ/phút'}
-
+                        </div>
                       <div className="text-right">{selectedInvoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
   minimumFractionDigits: 0, // không hiển thị phần thập phân
   maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
