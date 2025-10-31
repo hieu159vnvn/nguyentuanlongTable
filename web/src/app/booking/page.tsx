@@ -480,211 +480,220 @@ export default function BookingPage() {
 
       {/* Pricing Modal */}
       {showPricingModal && pricingResult && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Tạm tính tiền</h2>
-                <button
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                  onClick={() => {
-                    setShowPricingModal(false);
-                    setPricingResult(null);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded">
-                  <div className="font-bold mb-2">Thông tin khách hàng</div>
-                  <div className="text-sm">
-                    <div><span className="font-medium">Tên:</span> {selectedTable?.rental?.customer?.name}</div>
-                    <div><span className="font-medium">Mã KH:</span> {selectedTable?.rental?.customer?.customerCode}</div>
-                    <div><span className="font-medium">SĐT:</span> {selectedTable?.rental?.customer?.phone || 'Chưa có'}</div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded">
-                  <div className="font-bold mb-2">Thông tin thuê</div>
-                  <div className="text-sm">
-                    <div><span className="font-medium">Bàn:</span> {selectedTable?.name || selectedTable?.code}</div>
-                    <div><span className="font-medium">Bắt đầu:</span> {new Date(selectedTable?.rental?.startAt).toLocaleString()}</div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Thời gian đã thuê:</span> 
-                      <ElapsedTime startIso={selectedTable?.rental?.startAt} />
+              <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
+                  <div className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold">Tạm tính tiền</h2>
+                      <button
+                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                        onClick={() => {
+                          setShowPricingModal(false);
+                          setPricingResult(null);
+                        }}
+                      >
+                        ×
+                      </button>
                     </div>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Thời gian thuê thực tế:</span>
-                    <span>{formatMinutesToHoursMinutes(pricingResult?.minutes || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Thời gian còn lại trong gói:</span>
-                    <span>{formatMinutesToHoursMinutes(pricingResult?.remainingMinutes || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Thời gian sử dụng từ gói:</span>
-                    <span>{formatMinutesToHoursMinutes(pricingResult?.usedPackageMinutes || 0)}</span>
-                  </div>
-                  {pricingResult?.paidMinutes > 0 && (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Thời gian phải trả tiền:</span>
-                        <span>{pricingResult.paidMinutes} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tiền thuê:</span>
-                        <span>{pricingResult.rentalCost?.toLocaleString()}đ</span>
-                      </div>
-                    </>
-                  )}
-                  {pricingResult?.paidMinutes === 0 && (
-                    <div className="text-green-600 text-sm">✓ Sử dụng hoàn toàn từ gói (miễn phí)</div>
-                  )}
-                  
-                  {pricingResult?.accessories?.length > 0 && (
-                    <div>
-                      <div className="font-medium mb-1">Phụ kiện:</div>
-                      {pricingResult.accessories.map((acc: any, idx: number) => (
-                        <div key={idx} className="flex justify-between text-sm ml-2">
-                          <span>{acc.name}: {acc.quantity} x {acc.unitPrice.toLocaleString()}</span>
-                          <span>{acc.total.toLocaleString()}đ</span>
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 p-4 rounded">
+                        <div className="font-bold mb-2">Thông tin khách hàng</div>
+                        <div className="text-sm">
+                          <div><span className="font-medium">Tên:</span> {selectedTable?.rental?.customer?.name}</div>
+                          <div><span className="font-medium">Mã KH:</span> {selectedTable?.rental?.customer?.customerCode}</div>
+                          <div><span className="font-medium">SĐT:</span> {selectedTable?.rental?.customer?.phone || 'Chưa có'}</div>
                         </div>
-                      ))}
-                      <div className="flex justify-between font-medium">
-                        <span>Tổng phụ kiện:</span>
-                        <span>{pricingResult.accessoriesTotal?.toLocaleString()}đ</span>
+                      </div>
+
+                      <div className="bg-gray-50 p-4 rounded">
+                        <div className="font-bold mb-2">Thông tin thuê</div>
+                        <div className="text-sm">
+                          <div><span className="font-medium">Bàn:</span> {selectedTable?.name || selectedTable?.code}</div>
+                          <div><span className="font-medium">Bắt đầu:</span> {new Date(selectedTable?.rental?.startAt).toLocaleString()}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Thời gian đã thuê:</span> 
+                            <ElapsedTime startIso={selectedTable?.rental?.startAt} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Thời gian thuê thực tế:</span>
+                          <span>{formatMinutesToHoursMinutes(pricingResult?.minutes || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Thời gian còn lại trong gói:</span>
+                          <span>{formatMinutesToHoursMinutes(pricingResult?.remainingMinutes || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Thời gian sử dụng từ gói:</span>
+                          <span>{formatMinutesToHoursMinutes(pricingResult?.usedPackageMinutes || 0)}</span>
+                        </div>
+                        {pricingResult?.paidMinutes > 0 && (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Thời gian phải trả tiền:</span>
+                              <span>{formatMinutesToHoursMinutes(pricingResult.paidMinutes)} ({pricingResult.minuteRate?.toFixed(0) == 833 ? "50,000" : "45,000"}đ/giờ)
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Tiền thuê:</span>
+                              <span>{pricingResult.rentalCost?.toLocaleString('en-US', {
+        minimumFractionDigits: 0, // không hiển thị phần thập phân
+        maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+      })}đ</span>
+                            </div>
+                          </>
+                        )}
+                        {pricingResult?.paidMinutes === 0 && (
+                          <div className="text-green-600 text-sm">✓ Sử dụng hoàn toàn từ gói (miễn phí)</div>
+                        )}
+                        
+                        {pricingResult?.accessories?.length > 0 && (
+                          <div>
+                            <div className="font-medium mb-1">Phụ kiện:</div>
+                            {pricingResult.accessories.map((acc: any, idx: number) => (
+                              <div key={idx} className="flex justify-between text-sm ml-2">
+                                <span>{acc.name}: {acc.quantity} x {acc.unitPrice.toLocaleString()}</span>
+                                <span>{acc.total.toLocaleString()}đ</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between font-medium">
+                              <span>Tổng phụ kiện:</span>
+                              <span>{pricingResult.accessoriesTotal?.toLocaleString()}đ</span>
+                            </div>
+                          </div>
+                        )}
+                        {
+                          purchasedPackage?.name && (
+                            <div className="flex justify-between">
+                              <span>Gói:</span>
+                              <span>{purchasedPackage.name}</span>
+                              <span>{purchasedPackage.price.toLocaleString()}đ</span>
+                            </div>
+                          )
+                        }
+                        <div className="flex justify-between">
+                          <span>Tạm tính:</span>
+                          <span>{pricingResult?.subtotal?.toLocaleString('en-US', {
+        minimumFractionDigits: 0, // không hiển thị phần thập phân
+        maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+      })}đ</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm">Giảm giá:</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="border rounded px-3 py-2 w-24 text-sm"
+                            value={discount}
+                            onChange={(e) => setDiscount(Number(e.target.value))}
+                          />
+                          <span className="text-sm">đ</span>
+                        </div>
+                        
+                        <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                          <span>Tổng cộng:</span>
+                          <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString('en-US', {
+        minimumFractionDigits: 0, // không hiển thị phần thập phân
+        maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+      })}đ</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <button 
+                          className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
+                          onClick={async () => {
+                            try {
+                              // Tính tiền và cập nhật trạng thái bàn
+                              const settleResult = await api.settleTable(selectedTable.id, discount);
+                              
+                              // Tạo hóa đơn với dữ liệu từ settle
+                              const invoiceData = {
+                                code: settleResult?.invoice?.code || `INV-${Date.now()}`,
+                                customer: selectedTable?.rental?.customer,
+                                rental: {
+                                  hours: settleResult?.breakdown?.hours || 0,
+                                  minutes: settleResult?.breakdown?.minutes || 0,
+                                  accessories: settleResult?.breakdown?.accessories || [],
+                                  rentalCost: settleResult?.breakdown?.rentalCost || 0,
+                                  subtotal: settleResult?.breakdown?.subtotal || 0,
+                                  discount: discount,
+                                  total: (settleResult?.breakdown?.total || 0)
+                                },
+                                package: settleResult?.breakdown?.package ? {
+                                  name: settleResult.breakdown.package.name,
+                                  price: settleResult.breakdown.packageTotal || 0,
+                                  totalHours: settleResult.breakdown.package.totalHours,
+                                  bonusHours: settleResult.breakdown.package.bonusHours
+                                } : null,
+                                serviceDetails: {
+                                  rental: {
+                                    type: 'short',
+                                    minutes: settleResult?.breakdown?.minutes || 0,
+                                    hours: settleResult?.breakdown?.hours || 0,
+                                    startAt: selectedTable?.rental?.startAt,
+                                    endAt: new Date().toISOString(),
+                                    cost: settleResult?.breakdown?.rentalCost || 0
+                                  },
+                                  accessories: settleResult?.breakdown?.accessories || [],
+                                  package: settleResult?.breakdown?.package ? {
+                                    name: settleResult.breakdown.package.name,
+                                    totalHours: settleResult.breakdown.package.totalHours,
+                                    bonusHours: settleResult.breakdown.package.bonusHours,
+                                    price: settleResult.breakdown.packageTotal || 0
+                                  } : null,
+                                  pricing: {
+                                    rentalCost: settleResult?.breakdown?.rentalCost || 0,
+                                    accessoriesTotal: settleResult?.breakdown?.accessoriesTotal || 0,
+                                    packageTotal: settleResult?.breakdown?.packageTotal || 0,
+                                    subtotal: settleResult?.breakdown?.subtotal || 0,
+                                    discount: discount,
+                                    total: settleResult?.breakdown?.total || 0
+                                  }
+                                },
+                                bankInfo: settleResult?.bank || await api.getBankInfo()
+                              };
+                              
+                              setInvoiceData(invoiceData);
+                              setShowPricingModal(false);
+                              setShowInvoiceModal(true);
+                              
+                              // Refresh table status
+                              try {
+                                const status = await api.getTablesStatus();
+                                setTables(Array.isArray(status) ? status : status?.data || []);
+                              } catch {}
+                              
+                              alert(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                            } catch (err) {
+                              console.error('Error creating invoice:', err);
+                              alert('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+                            }
+                          }}
+                        >
+                          Tạo hóa đơn
+                        </button>
+                        <button 
+                          className="px-4 py-2 border rounded hover:bg-gray-100"
+                          onClick={() => {
+                            setShowPricingModal(false);
+                            setPricingResult(null);
+                            setShowTableInfoModal(true);
+                          }}
+                        >
+                          Quay lại
+                        </button>
                       </div>
                     </div>
-                  )}
-                  {
-                    purchasedPackage?.name && (
-                      <div className="flex justify-between">
-                        <span>Gói:</span>
-                        <span>{purchasedPackage.name}</span>
-                        <span>{purchasedPackage.price.toLocaleString()}đ</span>
-                      </div>
-                    )
-                  }
-                  <div className="flex justify-between">
-                    <span>Tạm tính:</span>
-                    <span>{pricingResult?.subtotal?.toLocaleString()}đ</span>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm">Giảm giá:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="border rounded px-3 py-2 w-24 text-sm"
-                      value={discount}
-                      onChange={(e) => setDiscount(Number(e.target.value))}
-                    />
-                    <span className="text-sm">đ</span>
-                  </div>
-                  
-                  <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                    <span>Tổng cộng:</span>
-                    <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString()}đ</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
-                    onClick={async () => {
-                      try {
-                        // Tính tiền và cập nhật trạng thái bàn
-                        const settleResult = await api.settleTable(selectedTable.id, discount);
-                        
-                        // Tạo hóa đơn với dữ liệu từ settle
-                        const invoiceData = {
-                          code: settleResult?.invoice?.code || `INV-${Date.now()}`,
-                          customer: selectedTable?.rental?.customer,
-                          rental: {
-                            hours: settleResult?.breakdown?.hours || 0,
-                            minutes: settleResult?.breakdown?.minutes || 0,
-                            accessories: settleResult?.breakdown?.accessories || [],
-                            rentalCost: settleResult?.breakdown?.rentalCost || 0,
-                            subtotal: settleResult?.breakdown?.subtotal || 0,
-                            discount: discount,
-                            total: (settleResult?.breakdown?.total || 0)
-                          },
-                          package: settleResult?.breakdown?.package ? {
-                            name: settleResult.breakdown.package.name,
-                            price: settleResult.breakdown.packageTotal || 0,
-                            totalHours: settleResult.breakdown.package.totalHours,
-                            bonusHours: settleResult.breakdown.package.bonusHours
-                          } : null,
-                          serviceDetails: {
-                            rental: {
-                              type: 'short',
-                              minutes: settleResult?.breakdown?.minutes || 0,
-                              hours: settleResult?.breakdown?.hours || 0,
-                              startAt: selectedTable?.rental?.startAt,
-                              endAt: new Date().toISOString(),
-                              cost: settleResult?.breakdown?.rentalCost || 0
-                            },
-                            accessories: settleResult?.breakdown?.accessories || [],
-                            package: settleResult?.breakdown?.package ? {
-                              name: settleResult.breakdown.package.name,
-                              totalHours: settleResult.breakdown.package.totalHours,
-                              bonusHours: settleResult.breakdown.package.bonusHours,
-                              price: settleResult.breakdown.packageTotal || 0
-                            } : null,
-                            pricing: {
-                              rentalCost: settleResult?.breakdown?.rentalCost || 0,
-                              accessoriesTotal: settleResult?.breakdown?.accessoriesTotal || 0,
-                              packageTotal: settleResult?.breakdown?.packageTotal || 0,
-                              subtotal: settleResult?.breakdown?.subtotal || 0,
-                              discount: discount,
-                              total: settleResult?.breakdown?.total || 0
-                            }
-                          },
-                          bankInfo: settleResult?.bank || await api.getBankInfo()
-                        };
-                        
-                        setInvoiceData(invoiceData);
-                        setShowPricingModal(false);
-                        setShowInvoiceModal(true);
-                        
-                        // Refresh table status
-                        try {
-                          const status = await api.getTablesStatus();
-                          setTables(Array.isArray(status) ? status : status?.data || []);
-                        } catch {}
-                        
-                        success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
-                      } catch (err) {
-                        console.error('Error creating invoice:', err);
-                        error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
-                      }
-                    }}
-                  >
-                    Tạo hóa đơn
-                  </button>
-                  <button 
-                    className="px-4 py-2 border rounded hover:bg-gray-100"
-                    onClick={() => {
-                      setShowPricingModal(false);
-                      setPricingResult(null);
-                      setShowTableInfoModal(true);
-                    }}
-                  >
-                    Quay lại
-                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
       )}
-
       {/* Invoice Modal */}
       {showInvoiceModal && invoiceData && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
@@ -744,15 +753,25 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
                       <div>Thuê bàn</div>
-                      <div className="text-center">{invoiceData.rental.minutes || Math.round(invoiceData.rental.hours * 60)} phút</div>
+                      <div className="text-center">{formatMinutesToHoursMinutes(invoiceData.rental.minutes)}</div>
                       <div className="text-right">
-                        {invoiceData.rental.rentalCost > 0 ? 
-                          `${Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)).toLocaleString()}đ/phút` : 
-                          '0đ/phút'
-                        }
+                      {invoiceData.rental.rentalCost > 0
+                          ? `${
+                              (
+                                Math.round(
+                                  invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)
+                                ) === 833
+                                  ? 50000
+                                  : 45000
+                              ).toLocaleString('vi-VN')
+                            }đ/giờ`
+                          : '0đ/giờ'}
                       </div>
                       <div className="text-right">
-                        {invoiceData.rental.rentalCost.toLocaleString()}đ
+                      {invoiceData.rental.rentalCost.toLocaleString('en-US', {
+                          minimumFractionDigits: 0, // không hiển thị phần thập phân
+                          maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+                        })}đ
                       </div>
                     </div>
                     
@@ -781,7 +800,10 @@ export default function BookingPage() {
                 <div className="space-y-2" style={{ marginTop: '16px' }}>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Tạm tính:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString() || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+}) || '0'}đ</span>
                   </div>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Giảm giá:</span>
@@ -789,7 +811,10 @@ export default function BookingPage() {
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px' }}>
                     <span>TỔNG CỘNG:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString() || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString('en-US', {
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+}) || '0'}đ</span>
                   </div>
                 </div>
 

@@ -693,14 +693,27 @@ export default function InvoicePage() {
                       <div>Thuê bàn</div>
                       <div className="text-center">{selectedInvoice.rentalMinutes || 0} phút</div>
                       <div className="text-right">
-                        {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
+                        {/* {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
                           `${Math.round(selectedInvoice.serviceDetails.pricing.rentalCost / (selectedInvoice.rentalMinutes || 1)).toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ/phút` : 
+                              minimumFractionDigits: 0, // không hiển thị phần thập phân
+                              maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+                            })}đ/phút` : 
                           '0đ/phút'
-                        }
-                      </div>
+                        } */}
+                      {selectedInvoice.serviceDetails?.pricing?.rentalCost &&
+                        selectedInvoice.serviceDetails.pricing.rentalCost > 0
+                          ? `${
+                              (
+                                Math.round(
+                                  selectedInvoice.serviceDetails.pricing.rentalCost /
+                                    (selectedInvoice.rentalMinutes || 1)
+                                ) === 833
+                                  ? 50000
+                                  : 45000
+                              ).toLocaleString('vi-VN')
+                            }đ/giờ`
+                          : '0đ/giờ'}
+                        </div>
                       <div className="text-right">{selectedInvoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
   minimumFractionDigits: 0, // không hiển thị phần thập phân
   maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
