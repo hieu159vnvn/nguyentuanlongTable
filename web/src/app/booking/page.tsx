@@ -669,10 +669,11 @@ export default function BookingPage() {
                                 setTables(Array.isArray(status) ? status : status?.data || []);
                               } catch {}
                               
-                              alert(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                              success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
                             } catch (err) {
                               console.error('Error creating invoice:', err);
-                              alert('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+                              error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+      
                             }
                           }}
                         >
