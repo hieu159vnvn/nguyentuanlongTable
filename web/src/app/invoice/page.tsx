@@ -800,19 +800,19 @@ export default function InvoicePage() {
                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${bankInfo.qrImage.url}`}
                             alt="QR Code"
                             style={{ 
-                              maxWidth: '120px', 
-                              maxHeight: '120px',
+                              maxWidth: '200px', 
+                              maxHeight: '200px',
                               border: '1px solid #ccc',
                               borderRadius: '4px'
                             }}
-                            width={120}
-                            height={120}
-                            className="w-12 h-12"
+                            width={200}
+                            height={200}
+                            className="w-20 h-20"
                           />
                         ) : (
                           <div style={{ 
-                            width: '120px', 
-                            height: '120px',
+                            width: '200px', 
+                            height: '200px',
                             border: '1px solid #ccc',
                             borderRadius: '4px',
                             display: 'flex',
