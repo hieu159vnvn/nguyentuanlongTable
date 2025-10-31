@@ -51,7 +51,7 @@ export default function AlertModal({ show, message, type = 'info', onClose }: Al
   const styles = typeStyles[type];
 
   return (
-    <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4">
+    <div className="fixed top-0 left-0 bg-transparent flex items-start justify-center z-50 p-4">
       <div className={`${styles.bg} border-2 ${styles.border} rounded-lg shadow-xl max-w-md w-full p-6`}>
         <div className="flex items-start gap-4">
           <div className={`flex-shrink-0 w-10 h-10 rounded-full ${styles.bg} border-2 ${styles.border} flex items-center justify-center text-xl font-bold`}>

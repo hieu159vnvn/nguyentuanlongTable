@@ -603,18 +603,43 @@ export default function CustomerPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Phút còn lại</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded px-3 py-2"
-                      value={editingCustomer.remainingMinutes}
-                      onChange={e => setEditingCustomer({...editingCustomer, remainingMinutes: Number(e.target.value)})}
-                      placeholder="Số phút còn lại"
-                      min="0"
-                    />
-                     <div className="text-xs text-gray-600 mt-1">
-                        Giờ còn lại: {formatMinutesToHoursMinutes(editingCustomer.remainingMinutes || 0)}
-                      </div>
+                    <label className="block text-sm font-medium mb-1">Giờ còn lại</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        className="w-24 border rounded px-3 py-2"
+                        value={Math.floor((editingCustomer.remainingMinutes || 0) / 60)}
+                        onChange={e => {
+                          const otherMinutes = (editingCustomer.remainingMinutes || 0) % 60;
+                          const hours = Math.max(0, parseInt(e.target.value || '0', 10));
+                          const total = hours * 60 + otherMinutes;
+                          setEditingCustomer({ ...editingCustomer, remainingMinutes: total });
+                        }}
+                        placeholder="Giờ"
+                        min="0"
+                      />
+                      <span className="text-sm">giờ</span>
+                      <input
+                        type="number"
+                        className="w-24 border rounded px-3 py-2"
+                        value={(editingCustomer.remainingMinutes || 0) % 60}
+                        onChange={e => {
+                          const hours = Math.floor((editingCustomer.remainingMinutes || 0) / 60);
+                          let minutes = Math.max(0, parseInt(e.target.value || '0', 10));
+                          if (isNaN(minutes)) minutes = 0;
+                          if (minutes > 59) minutes = 59;
+                          const total = hours * 60 + minutes;
+                          setEditingCustomer({ ...editingCustomer, remainingMinutes: total });
+                        }}
+                        placeholder="Phút"
+                        min="0"
+                        max="59"
+                      />
+                      <span className="text-sm">phút</span>
+                    </div>
+                    {/* <div className="text-xs text-gray-600 mt-1">
+                      Tổng: {(editingCustomer.remainingMinutes || 0)} phút
+                    </div> */}
                   </div>
                 </div>
                 
