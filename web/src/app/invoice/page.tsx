@@ -516,7 +516,7 @@ export default function InvoicePage() {
                         className="text-[#00203FFF] hover:text-[#001a33] mr-2"
                         onClick={() => viewInvoice(invoice.id, invoice.documentId)}
                       >
-                                        <Image className="w-4 h-4" src="/images/search.png" alt=""/>
+                                        <Image className="w-4 h-4" src="/images/search.png" alt="Tìm kiếm" width={16} height={16} unoptimized/>
 
                       </button>
                     </td>
@@ -693,27 +693,14 @@ export default function InvoicePage() {
                       <div>Thuê bàn</div>
                       <div className="text-center">{selectedInvoice.rentalMinutes || 0} phút</div>
                       <div className="text-right">
-                        {/* {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
+                        {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
                           `${Math.round(selectedInvoice.serviceDetails.pricing.rentalCost / (selectedInvoice.rentalMinutes || 1)).toLocaleString('en-US', {
-                              minimumFractionDigits: 0, // không hiển thị phần thập phân
-                              maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-                            })}đ/phút` : 
+  minimumFractionDigits: 0, // không hiển thị phần thập phân
+  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
+})}đ/phút` : 
                           '0đ/phút'
-                        } */}
-                      {selectedInvoice.serviceDetails?.pricing?.rentalCost &&
-                        selectedInvoice.serviceDetails.pricing.rentalCost > 0
-                          ? `${
-                              (
-                                Math.round(
-                                  selectedInvoice.serviceDetails.pricing.rentalCost /
-                                    (selectedInvoice.rentalMinutes || 1)
-                                ) === 833
-                                  ? 50000
-                                  : 45000
-                              ).toLocaleString('vi-VN')
-                            }đ/giờ`
-                          : '0đ/giờ'}
-                        </div>
+                        }
+                      </div>
                       <div className="text-right">{selectedInvoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
   minimumFractionDigits: 0, // không hiển thị phần thập phân
   maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
@@ -805,6 +792,9 @@ export default function InvoicePage() {
                               border: '1px solid #ccc',
                               borderRadius: '4px'
                             }}
+                            width={120}
+                            height={120}
+                            className="w-12 h-12"
                           />
                         ) : (
                           <div style={{ 

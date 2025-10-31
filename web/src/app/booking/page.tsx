@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import AlertModal from '@/components/AlertModal';
-// import { useAlert } from '@/hooks/useAlert';
+import { useAlert } from '@/hooks/useAlert';
 
 type Accessory = { id: number; name: string; price: number };
 type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
@@ -27,7 +27,7 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
 }
 
 export default function BookingPage() {
-  // const { alert, success, error, hideAlert } = useAlert();
+  const { alert, success, error, hideAlert } = useAlert();
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -172,7 +172,7 @@ export default function BookingPage() {
                   setShowTableInfoModal(true);
                 }
               }}>
-                <Image src="/images/table.png" alt="" className="w-10 h-10" />
+                <Image src="/images/table.png" alt="Bàn" className="w-10 h-10" width={40} height={40} unoptimized />
                 <div className="font-bold text-lg">{t.name || t.code}</div>
                 <div className="text-sm">{t.status==='free' ? 'Trống' : 'Đang cho thuê'}</div>
               </button>
@@ -308,7 +308,7 @@ export default function BookingPage() {
                           return (
                             <div key={acc.accessoryId} className="flex justify-between text-xs mb-1">
                               <span>{accessory?.name} x {acc.quantity}</span>
-                              <span>{((accessory?.price || 0) * acc.quantity).toLocaleString()}đ</span>
+                              <span>{(accessory?.price || 0) * acc.quantity}đ</span>
                             </div>
                           );
                         })}
@@ -326,7 +326,7 @@ export default function BookingPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base" onClick={async ()=>{
-                    if (!selectedCustomerId) return alert('Vui lòng chọn khách hàng');
+                    if (!selectedCustomerId) return error('Vui lòng chọn khách hàng');
                     
                     try {
                       // Bắt đầu thuê bàn - sẽ tính tiền theo thời gian thực
@@ -335,7 +335,7 @@ export default function BookingPage() {
                         accessories: selectedAccessories
                       };
                       const res = await api.startShortOnTable(selectedTable.id, payload);
-                      alert(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
+                      success(`Đã bắt đầu thuê tại bàn ${selectedTable.name || selectedTable.code}. Hệ thống sẽ tự động tính tiền theo thời gian sử dụng.`);
                       
                       // Nếu có mua gói thêm
                       if (selectedPackage) {
@@ -346,7 +346,7 @@ export default function BookingPage() {
                         };
                         await api.purchasePackageOnly(packagePayload);
                         setPurchasedPackage(selectedPkg); // Lưu thông tin gói
-                        alert('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
+                        success('Đã mua thêm gói cho khách hàng. Hóa đơn sẽ được tạo khi settle table.');
                       }
                       
                       // Refresh table status
@@ -357,7 +357,7 @@ export default function BookingPage() {
                       closeRentalModal();
                     } catch (err) {
                       console.error('Error starting rental:', err);
-                      alert('Lỗi khi bắt đầu thuê bàn');
+                      error('Lỗi khi bắt đầu thuê bàn');
                     }
                   }}>Bắt đầu thuê</button>
                 </div>
@@ -436,12 +436,12 @@ export default function BookingPage() {
                     onClick={async ()=>{
                       try {
                         if (!selectedTable?.rental?.customer?.id) {
-                          alert('Không tìm thấy thông tin khách hàng');
+                          error('Không tìm thấy thông tin khách hàng');
                           return;
                         }
                         
                         if (!selectedTable?.rental?.id) {
-                          alert('Không tìm thấy thông tin rental');
+                          error('Không tìm thấy thông tin rental');
                           return;
                         }
                         
@@ -456,7 +456,7 @@ export default function BookingPage() {
                         setShowPricingModal(true);
                       } catch (err) {
                         console.error('Error calculating pricing:', err);
-                        alert('Lỗi tính tiền: ' + (err as Error).message);
+                        error('Lỗi tính tiền: ' + (err as Error).message);
                       }
                     }}
                   >
@@ -535,15 +535,11 @@ export default function BookingPage() {
                     <>
                       <div className="flex justify-between">
                         <span>Thời gian phải trả tiền:</span>
-                        <span>{formatMinutesToHoursMinutes(pricingResult.paidMinutes)} ({pricingResult.minuteRate?.toFixed(0) == 833 ? "50,000" : "45,000"}đ/giờ)
-                        </span>
+                        <span>{pricingResult.paidMinutes} phút ({pricingResult.minuteRate?.toFixed(0)}đ/phút)</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tiền thuê:</span>
-                        <span>{pricingResult.rentalCost?.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
+                        <span>{pricingResult.rentalCost?.toLocaleString()}đ</span>
                       </div>
                     </>
                   )}
@@ -577,10 +573,7 @@ export default function BookingPage() {
                   }
                   <div className="flex justify-between">
                     <span>Tạm tính:</span>
-                    <span>{pricingResult?.subtotal?.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
+                    <span>{pricingResult?.subtotal?.toLocaleString()}đ</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -597,10 +590,7 @@ export default function BookingPage() {
                   
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Tổng cộng:</span>
-                    <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
+                    <span>{((pricingResult?.subtotal || 0) - discount).toLocaleString()}đ</span>
                   </div>
                 </div>
 
@@ -669,10 +659,10 @@ export default function BookingPage() {
                           setTables(Array.isArray(status) ? status : status?.data || []);
                         } catch {}
                         
-                        alert(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                        success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
                       } catch (err) {
                         console.error('Error creating invoice:', err);
-                        alert('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+                        error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
                       }
                     }}
                   >
@@ -754,29 +744,15 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
                       <div>Thuê bàn</div>
-                      <div className="text-center">{formatMinutesToHoursMinutes(invoiceData.rental.minutes)}</div>
+                      <div className="text-center">{invoiceData.rental.minutes || Math.round(invoiceData.rental.hours * 60)} phút</div>
                       <div className="text-right">
-                        {/* {invoiceData.rental.rentalCost > 0 ? 
+                        {invoiceData.rental.rentalCost > 0 ? 
                           `${Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)).toLocaleString()}đ/phút` : 
                           '0đ/phút'
-                        } */}
-                       {invoiceData.rental.rentalCost > 0
-                          ? `${
-                              (
-                                Math.round(
-                                  invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)
-                                ) === 833
-                                  ? 50000
-                                  : 45000
-                              ).toLocaleString('vi-VN')
-                            }đ/giờ`
-                          : '0đ/giờ'}
+                        }
                       </div>
                       <div className="text-right">
-                        {invoiceData.rental.rentalCost.toLocaleString('en-US', {
-                          minimumFractionDigits: 0, // không hiển thị phần thập phân
-                          maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-                        })}đ
+                        {invoiceData.rental.rentalCost.toLocaleString()}đ
                       </div>
                     </div>
                     
@@ -805,10 +781,7 @@ export default function BookingPage() {
                 <div className="space-y-2" style={{ marginTop: '16px' }}>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Tạm tính:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-}) || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString() || '0'}đ</span>
                   </div>
                   <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Giảm giá:</span>
@@ -816,10 +789,7 @@ export default function BookingPage() {
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px' }}>
                     <span>TỔNG CỘNG:</span>
-                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-}) || '0'}đ</span>
+                    <span>{invoiceData.serviceDetails?.pricing?.total?.toLocaleString() || '0'}đ</span>
                   </div>
                 </div>
 
@@ -849,6 +819,9 @@ export default function BookingPage() {
                               border: '1px solid #ccc',
                               borderRadius: '4px'
                             }}
+                            width={120}
+                            height={120}
+                            className="w-12 h-12"
                           />
                         ) : (
                           <div style={{ 
@@ -901,7 +874,7 @@ export default function BookingPage() {
                           link.click();
                         }).catch(error => {
                           console.error('Error generating image:', error);
-                          alert('Lỗi khi tạo ảnh: ' + error.message);
+                          error('Lỗi khi tạo ảnh: ' + error.message);
                         });
                       });
                     }
@@ -928,12 +901,12 @@ export default function BookingPage() {
       )}
 
       {/* Alert Modal */}
-      {/* <AlertModal
+      <AlertModal
         show={alert.show}
         message={alert.message}
         type={alert.type}
         onClose={hideAlert}
-      /> */}
+      />
     </div>
   );
 }

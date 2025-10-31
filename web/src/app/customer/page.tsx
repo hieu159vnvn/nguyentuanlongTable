@@ -39,6 +39,7 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
 }
 
 export default function CustomerPage() {
+  const { alert, success, error, hideAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -101,9 +102,9 @@ export default function CustomerPage() {
         };
       });
       setAllCustomers(mapped);
-    } catch (error) {
-      console.error('Error loading customers:', error);
-      alert('Lỗi tải danh sách khách hàng');
+    } catch (err) {
+      console.error('Error loading customers:', err);
+      error('Lỗi tải danh sách khách hàng');
     } finally {
       setLoading(false);
     }
@@ -137,7 +138,7 @@ export default function CustomerPage() {
 
   async function saveCustomer() {
     if (!newCustomer.name.trim()) {
-      alert('Vui lòng nhập tên khách hàng');
+      error('Vui lòng nhập tên khách hàng');
       return;
     }
     
@@ -155,10 +156,11 @@ export default function CustomerPage() {
       setNewCustomer({ name: '', phone: '', notes: '' });
       setShowAddModal(false);
       await load();
-      alert('Tạo khách hàng thành công!');
-    } catch (error) {
-      console.error('Error saving customer:', error);
-      alert(`Lỗi: ${error instanceof Error ? error.message : 'Không thể tạo khách hàng'}`);
+      success('Tạo khách hàng thành công!');
+    } catch (e) {
+      console.error('Error saving customer:', e);
+      const msg = e instanceof Error ? e.message : 'Không thể tạo khách hàng';
+      error(`Lỗi: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -166,7 +168,7 @@ export default function CustomerPage() {
 
   async function updateCustomer() {
     if (!editingCustomer || !editingCustomer.name.trim()) {
-      alert('Vui lòng nhập tên khách hàng');
+      error('Vui lòng nhập tên khách hàng');
       return;
     }
     
@@ -184,10 +186,11 @@ export default function CustomerPage() {
       setShowEditModal(false);
       setEditingCustomer(null);
       await load();
-      alert('Cập nhật khách hàng thành công!');
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      alert(`Lỗi: ${error instanceof Error ? error.message : 'Không thể cập nhật khách hàng'}`);
+      success('Cập nhật khách hàng thành công!');
+    } catch (e) {
+      console.error('Error updating customer:', e);
+      const msg = e instanceof Error ? e.message : 'Không thể cập nhật khách hàng';
+      error(`Lỗi: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -202,10 +205,15 @@ export default function CustomerPage() {
     try {
       await api.deleteCustomer(id);
       await load();
-      alert('Xóa khách hàng thành công!');
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-      alert(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xóa khách hàng'}`);
+      success('Xóa khách hàng thành công!');
+    } catch (e) {
+      console.error('Error deleting customer:', e);
+      const raw = e instanceof Error ? e.message : String(e);
+      if (raw.includes('Cannot delete customer with existing rentals or invoices')) {
+        error('Không thể xóa khách hàng vì đang có lịch sử thuê bàn hoặc hóa đơn liên quan. Vui lòng xóa các bản ghi liên quan trước.');
+      } else {
+        error(`Lỗi: ${raw || 'Không thể xóa khách hàng'}`);
+      }
     } finally {
       setDeletingId(null);
     }
@@ -225,7 +233,7 @@ export default function CustomerPage() {
 
   async function updateCustomerTime() {
     if (!timeIn || !timeOut) {
-      alert('Vui lòng nhập đầy đủ thời gian vào và thời gian ra');
+      error('Vui lòng nhập đầy đủ thời gian vào và thời gian ra');
       return;
     }
 
@@ -237,7 +245,7 @@ export default function CustomerPage() {
       const timeOutDate = new Date(timeOut);
       
       if (timeOutDate <= timeInDate) {
-        alert('Thời gian ra phải lớn hơn thời gian vào');
+        error('Thời gian ra phải lớn hơn thời gian vào');
         setUpdatingTime(false);
         return;
       }
@@ -257,7 +265,7 @@ export default function CustomerPage() {
         }
       });
 
-      alert(`Đã cập nhật thành công! Đã trừ ${diffMinutes} phút từ thời gian còn lại của khách hàng.`);
+      success(`Đã cập nhật thành công! Đã trừ ${diffMinutes} phút từ thời gian còn lại của khách hàng.`);
       
       // Refresh the list
       await load(currentPage);
@@ -267,9 +275,9 @@ export default function CustomerPage() {
       setUpdatingTimeCustomer(null);
       setTimeIn('');
       setTimeOut('');
-    } catch (error) {
-      console.error('Error updating customer time:', error);
-      alert('Lỗi cập nhật thời gian khách hàng');
+    } catch (e) {
+      console.error('Error updating customer time:', e);
+      error('Lỗi cập nhật thời gian khách hàng');
     } finally {
       setUpdatingTime(false);
     }
@@ -351,7 +359,7 @@ export default function CustomerPage() {
                       onClick={() => startUpdateTime(r)}
                       title="Cập nhật giờ còn lại"
                     >
-                      <Image src="/images/update.png" alt="" className="w-8 h-8" />
+                      <Image src="/images/wall-clock.png" alt="Đồng hồ" className="w-4 h-4" width={16} height={16} unoptimized />
                     </button>
                       <button
                         className="px-2 py-1 text-xs bg-[#00203FFF] text-white rounded hover:bg-blue-600 shadow-[3px_3px_black]"
@@ -604,6 +612,9 @@ export default function CustomerPage() {
                       placeholder="Số phút còn lại"
                       min="0"
                     />
+                     <div className="text-xs text-gray-600 mt-1">
+                        Giờ còn lại: {formatMinutesToHoursMinutes(editingCustomer.remainingMinutes || 0)}
+                      </div>
                   </div>
                 </div>
                 
@@ -749,6 +760,13 @@ export default function CustomerPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        show={alert.show}
+        message={alert.message}
+        type={alert.type}
+        onClose={hideAlert}
+      />
     </div>
   );
 }
