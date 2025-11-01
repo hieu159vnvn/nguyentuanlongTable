@@ -17,7 +17,7 @@ export default [
         'http://127.0.0.1:3000',
         'http://0.0.0.0:3000',
         'http://192.168.1.69:3000',
-        'https://nguyentuanlong-table.vercel.app',
+        'https://jujubeautyroom.vercel.app',
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
       keepHeaderOnError: true,
