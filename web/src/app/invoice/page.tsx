@@ -2,6 +2,24 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
+import html2canvas from "html2canvas";
+// Helper function to format minutes to hours and minutes
+function formatMinutesToHoursMinutes(minutes: number | undefined | null): string {
+  if (minutes === undefined || minutes === null || isNaN(minutes)) {
+    return '0 phút';
+  }
+  
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  
+  if (h === 0) {
+    return `${m} phút`;
+  } else if (m === 0) {
+    return `${h}h`;
+  } else {
+    return `${h}h ${m} phút`;
+  }
+}
 
 type InvoiceRow = {
   id: number;
@@ -646,6 +664,7 @@ export default function InvoicePage() {
                       <div><span className="font-medium">Tên:</span> {selectedInvoice.customerName || selectedInvoice.customer.name}</div>
                       <div><span className="font-medium">Mã KH:</span> {selectedInvoice.customerCode || 'N/A'}</div>
                       <div><span className="font-medium">SĐT:</span> {selectedInvoice.customerPhone || selectedInvoice.customer.phone || 'Chưa có'}</div>
+                      <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes(selectedInvoice.rentalMinutes || 0)}</div>
                     </div>
                   </div>
                   {/* <div>
@@ -691,7 +710,7 @@ export default function InvoicePage() {
                     {/* Rental service */}
                     <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
                       <div>Thuê bàn</div>
-                      <div className="text-center">{selectedInvoice.rentalMinutes || 0} phút</div>
+                      <div className="text-center">{formatMinutesToHoursMinutes(selectedInvoice.rentalMinutes || 0)}</div>
                       <div className="text-right">
                         {/* {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
                           `${Math.round(selectedInvoice.serviceDetails.pricing.rentalCost / (selectedInvoice.rentalMinutes || 1)).toLocaleString('en-US', {
@@ -797,7 +816,7 @@ export default function InvoicePage() {
                       <div className="text-center">
                         {bankInfo.qrImage?.url ? (
                           <Image 
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${bankInfo.qrImage.url}`}
+                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${bankInfo.qrImage.url || 'images/QR-code.png'}`}
                             alt="QR Code"
                             style={{ 
                               maxWidth: '200px', 
@@ -840,30 +859,27 @@ export default function InvoicePage() {
                 <button 
                   className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
                   onClick={() => {
-                    // Tạo canvas để xuất ảnh với options để tránh lỗi CSS
                     const element = document.getElementById('invoice-content');
-                    if (element) {
-                      import('html2canvas').then(html2canvas => {
-                        html2canvas.default(element, {
-                          backgroundColor: '#ffffff',
-                          scale: 2,
-                          useCORS: true,
-                          allowTaint: true,
-                          ignoreElements: (element) => {
-                            // Bỏ qua các element có CSS phức tạp
-                            return element.classList.contains('ignore-export');
-                          }
-                        }).then(canvas => {
-                          const link = document.createElement('a');
-                          link.download = `hoa-don-${selectedInvoice.code}-${Date.now()}.png`;
-                          link.href = canvas.toDataURL('image/png', 1.0);
-                          link.click();
-                        }).catch(error => {
-                          console.error('Error generating image:', error);
-                          alert('Lỗi khi tạo ảnh: ' + error.message);
-                        });
+                    if (!element) return;
+                  
+                    html2canvas(element, {
+                      backgroundColor: '#ffffff',
+                      scale: 2,
+                      useCORS: true,
+                      allowTaint: true,
+                      ignoreElements: (element) => {
+                        return element.classList.contains('ignore-export');
+                      }
+                    })
+                      .then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = `hoa-don-${Date.now()}.png`;
+                        link.href = canvas.toDataURL('image/png', 1.0);
+                        link.click();
+                      })
+                      .catch(e => {
+                        console.log("Lỗi tạo ảnh:", e);
                       });
-                    }
                   }}
                 >
                   Lưu ảnh

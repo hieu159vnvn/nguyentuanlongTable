@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import Image from 'next/image';
 import AlertModal from '@/components/AlertModal';
 import { useAlert } from '@/hooks/useAlert';
+import html2canvas from "html2canvas";
 
 type Accessory = { id: number; name: string; price: number };
 type Customer = { id: number; name: string; customerCode: string; phone?: string; remainingMinutes: number };
@@ -25,7 +26,19 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
     return `${h}h ${m} phút`;
   }
 }
+function formatVNDateTime(date) {
+  const pad = (n) => n.toString().padStart(2, "0");
 
+  const HH = pad(date.getHours());
+  const mm = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+
+  const d = date.getDate();
+  const M = date.getMonth() + 1;
+  const Y = date.getFullYear();
+
+  return `${HH}:${mm}:${ss} ${d}/${M}/${Y}`;
+}
 export default function BookingPage() {
   const { alert, success, error, hideAlert } = useAlert();
   const [packages, setPackages] = useState<any[]>([]);
@@ -503,6 +516,7 @@ export default function BookingPage() {
                           <div><span className="font-medium">Tên:</span> {selectedTable?.rental?.customer?.name}</div>
                           <div><span className="font-medium">Mã KH:</span> {selectedTable?.rental?.customer?.customerCode}</div>
                           <div><span className="font-medium">SĐT:</span> {selectedTable?.rental?.customer?.phone || 'Chưa có'}</div>
+                          <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes(selectedTable?.rental?.customer?.remainingMinutes || 0)}</div>
                         </div>
                       </div>
 
@@ -730,6 +744,8 @@ export default function BookingPage() {
                       <div><span className="font-medium">Tên:</span> {invoiceData.customer?.name}</div>
                       <div><span className="font-medium">Mã KH:</span> {invoiceData.customer?.customerCode}</div>
                       <div><span className="font-medium">SĐT:</span> {invoiceData.customer?.phone || 'Chưa có'}</div>
+                      <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes(selectedTable?.rental?.customer?.remainingMinutes || 0)}</div>
+
                     </div>
                   </div>
                   <div>
@@ -737,7 +753,7 @@ export default function BookingPage() {
                     <div className="text-sm space-y-1">
                       <div><span className="font-medium">Bàn:</span> {selectedTable?.name || selectedTable?.code}</div>
                     <div><span className="font-medium">Thời gian bắt đầu:</span> {selectedTable?.rental?.startAt ? new Date(selectedTable.rental.startAt).toLocaleString('vi-VN') : 'N/A'}</div>
-                    {/* <div><span className="font-medium">Thời gian kết thúc:</span> {selectedTable?.rental?.endAt ? new Date(selectedTable.rental.endAt).toLocaleString('vi-VN') : 'N/A'}</div> */}
+                    {/* <div><span className="font-medium">Thời gian kết thúc:</span> {formatVNDateTime(new Date())}</div> */}
                     </div>
                   </div>
 
@@ -837,7 +853,7 @@ export default function BookingPage() {
                       <div className="text-center">
                         {invoiceData.bankInfo.qrImage ? (
                           <Image 
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${invoiceData.bankInfo.qrImage.url}`}
+                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${invoiceData.bankInfo.qrImage.url || 'images/QR-code.png'}`}
                             alt="QR Code"
                             style={{ 
                               maxWidth: '200px', 
@@ -880,30 +896,27 @@ export default function BookingPage() {
                 <button 
                   className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
                   onClick={() => {
-                    // Tạo canvas để xuất ảnh với options để tránh lỗi CSS
                     const element = document.getElementById('invoice-content');
-                    if (element) {
-                      import('html2canvas').then(html2canvas => {
-                        html2canvas.default(element, {
-                          backgroundColor: '#ffffff',
-                          scale: 2,
-                          useCORS: true,
-                          allowTaint: true,
-                          ignoreElements: (element) => {
-                            // Bỏ qua các element có CSS phức tạp
-                            return element.classList.contains('ignore-export');
-                          }
-                        }).then(canvas => {
-                          const link = document.createElement('a');
-                          link.download = `hoa-don-${Date.now()}.png`;
-                          link.href = canvas.toDataURL('image/png', 1.0);
-                          link.click();
-                        }).catch(error => {
-                          console.error('Error generating image:', error);
-                          error('Lỗi khi tạo ảnh: ' + error.message);
-                        });
+                    if (!element) return;
+                  
+                    html2canvas(element, {
+                      backgroundColor: '#ffffff',
+                      scale: 2,
+                      useCORS: true,
+                      allowTaint: true,
+                      ignoreElements: (element) => {
+                        return element.classList.contains('ignore-export');
+                      }
+                    })
+                      .then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = `hoa-don-${Date.now()}.png`;
+                        link.href = canvas.toDataURL('image/png', 1.0);
+                        link.click();
+                      })
+                      .catch(e => {
+                        console.log("Lỗi tạo ảnh:", e);
                       });
-                    }
                   }}
                 >
                   Lưu ảnh
