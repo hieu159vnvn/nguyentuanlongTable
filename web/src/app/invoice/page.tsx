@@ -828,7 +828,7 @@ export default function InvoicePage() {
                       <div className="text-center">
                         {bankInfo.qrImage?.url ? (
                           <Image 
-                            src="/images/QR-code.png"
+                            src="/images/QR_bank.png"
                             alt="QR Code"
                             unoptimized
                             style={{ 

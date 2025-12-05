@@ -841,7 +841,7 @@ export default function BookingPage() {
                       <div className="text-center">
                         {invoiceData.bankInfo.qrImage ? (
                           <Image 
-                            src="/images/QR-code.png"
+                            src="/images/QR_bank.png"
                             unoptimized
                             alt="QR Code"
                             style={{ 
