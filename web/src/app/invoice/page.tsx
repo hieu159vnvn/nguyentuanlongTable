@@ -29,10 +29,12 @@ type InvoiceRow = {
     id: number;
     name: string;
     phone?: string;
+    remainingMinutes?: number;
   };
   customerName?: string;
   customerPhone?: string;
   customerCode?: string;
+  remainingMinutes?: number;
   rental: {
     id: number;
     type: string;
@@ -74,10 +76,12 @@ type InvoiceDetail = {
     name: string;
     phone?: string;
     customerCode: string;
+    remainingMinutes?: number;
   };
   customerName?: string;
   customerPhone?: string;
   customerCode?: string;
+  remainingMinutes?: number;
   paymentMethod?: string;
   rental: {
     id: number;
@@ -186,13 +190,14 @@ export default function InvoicePage() {
         const a = inv?.attributes ?? inv;
         
         // Handle customer data - use stored customer info
-        let customerData = { id: 0, name: 'Khách vãng lai', phone: '' };
+        let customerData = { id: 0, name: 'Khách vãng lai', phone: '', remainingMinutes: 0 };
         if (a?.customerName) {
           // Use stored customer data
           customerData = {
             id: a?.customer || 0,
             name: a.customerName || 'Khách vãng lai',
-            phone: a.customerPhone || ''
+            phone: a.customerPhone || '', 
+            remainingMinutes: a.remainingMinutes || 0
           };
         } else if (a?.customer?.data) {
           // Fallback to populated data if available
@@ -200,11 +205,12 @@ export default function InvoicePage() {
           customerData = {
             id: customer.id,
             name: customer.attributes?.name ?? customer.name ?? 'Khách vãng lai',
-            phone: customer.attributes?.phone ?? customer.phone ?? ''
+            phone: customer.attributes?.phone ?? customer.phone ?? '',
+            remainingMinutes: customer.attributes?.remainingMinutes ?? customer.remainingMinutes ?? 0
           };
         } else if (a?.customer) {
           // If customer is just an ID, we'll need to fetch it separately
-          customerData = { id: a.customer, name: 'Đang tải...', phone: '' };
+          customerData = { id: a.customer, name: 'Đang tải...', phone: '', remainingMinutes: 0 };
         }
         
         // Handle rental data
@@ -230,6 +236,7 @@ export default function InvoicePage() {
           customerName: a?.customerName ?? '',
           customerPhone: a?.customerPhone ?? '',
           customerCode: a?.customerCode ?? '',
+          remainingMinutes: a?.remainingMinutes ?? 0,
           rental: rentalData,
           subtotal: Number(a?.subtotal ?? 0),
           discount: Number(a?.discount ?? 0),
@@ -253,7 +260,8 @@ export default function InvoicePage() {
                 customer: {
                   id: customer.id,
                   name: customerAttrs?.name ?? 'Khách vãng lai',
-                  phone: customerAttrs?.phone ?? ''
+                  phone: customerAttrs?.phone ?? '',
+                  remainingMinutes: customerAttrs?.remainingMinutes ?? 0
                 }
               };
             } catch (error) {
@@ -263,7 +271,8 @@ export default function InvoicePage() {
                 customer: {
                   id: invoice.customer.id,
                   name: 'Khách vãng lai',
-                  phone: ''
+                  phone: '',
+                  remainingMinutes: 0
                 }
               };
             }
@@ -334,6 +343,7 @@ export default function InvoicePage() {
   });
 
   async function viewInvoice(id: number, documentId: string) {
+    console.log(selectedInvoice);
     try {
       // Try to get invoice with populate first
       let json;
@@ -355,12 +365,14 @@ export default function InvoicePage() {
           id: a.customer.data.id,
           name: a.customer.data.attributes?.name ?? a.customer.data.name ?? '',
           phone: a.customer.data.attributes?.phone ?? a.customer.data.phone ?? '',
-          customerCode: a.customer.data.attributes?.customerCode ?? a.customer.data.customerCode ?? ''
-        } : { id: 0, name: 'Khách vãng lai', customerCode: 'N/A' },
+          customerCode: a.customer.data.attributes?.customerCode ?? a.customer.data.customerCode ?? '',
+          remainingMinutes: a.customer.data.attributes?.remainingMinutes ?? a.customer.data.remainingMinutes ?? 0
+        } : { id: 0, name: 'Khách vãng lai', customerCode: 'N/A', remainingMinutes: 0 },
         customerName: a?.customerName ?? '',
         customerPhone: a?.customerPhone ?? '',
         customerCode: a?.customerCode ?? '',
         paymentMethod: a?.paymentMethod ?? '',
+        remainingMinutes: a?.remainingMinutes ?? a?.customer?.data?.attributes?.remainingMinutes ?? a?.customer?.data?.remainingMinutes ?? 0,
         rental: a?.rental?.data ? {
           id: a.rental.data.id,
           type: a.rental.data.attributes?.type ?? a.rental.data.type ?? '',
@@ -664,7 +676,7 @@ export default function InvoicePage() {
                       <div><span className="font-medium">Tên:</span> {selectedInvoice.customerName || selectedInvoice.customer.name}</div>
                       <div><span className="font-medium">Mã KH:</span> {selectedInvoice.customerCode || 'N/A'}</div>
                       <div><span className="font-medium">SĐT:</span> {selectedInvoice.customerPhone || selectedInvoice.customer.phone || 'Chưa có'}</div>
-                      <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes(selectedInvoice.rentalMinutes || 0)}</div>
+                      {/* <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes( selectedInvoice.remainingMinutes || selectedInvoice.customer.remainingMinutes || 0)}</div> */}
                     </div>
                   </div>
                   {/* <div>
