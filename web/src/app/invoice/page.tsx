@@ -828,7 +828,7 @@ export default function InvoicePage() {
                       <div className="text-center">
                         {bankInfo.qrImage?.url ? (
                           <Image 
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${ '/images/QR-code.png' }`}
+                            src="/images/QR-code.png"
                             alt="QR Code"
                             style={{ 
                               maxWidth: '200px', 

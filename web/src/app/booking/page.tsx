@@ -841,7 +841,8 @@ export default function BookingPage() {
                       <div className="text-center">
                         {invoiceData.bankInfo.qrImage ? (
                           <Image 
-                            src={`${process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:1337'}${  '/images/QR-code.png'  }`}
+                            src="/images/QR-code.png"
+
                             alt="QR Code"
                             style={{ 
                               maxWidth: '200px', 
