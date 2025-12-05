@@ -830,6 +830,7 @@ export default function InvoicePage() {
                           <Image 
                             src="/images/QR-code.png"
                             alt="QR Code"
+                            unoptimized
                             style={{ 
                               maxWidth: '200px', 
                               maxHeight: '200px',
