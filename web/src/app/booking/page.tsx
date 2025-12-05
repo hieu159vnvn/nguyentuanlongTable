@@ -26,19 +26,7 @@ function formatMinutesToHoursMinutes(minutes: number | undefined | null): string
     return `${h}h ${m} phút`;
   }
 }
-function formatVNDateTime(date) {
-  const pad = (n) => n.toString().padStart(2, "0");
 
-  const HH = pad(date.getHours());
-  const mm = pad(date.getMinutes());
-  const ss = pad(date.getSeconds());
-
-  const d = date.getDate();
-  const M = date.getMonth() + 1;
-  const Y = date.getFullYear();
-
-  return `${HH}:${mm}:${ss} ${d}/${M}/${Y}`;
-}
 export default function BookingPage() {
   const { alert, success, error, hideAlert } = useAlert();
   const [packages, setPackages] = useState<any[]>([]);
