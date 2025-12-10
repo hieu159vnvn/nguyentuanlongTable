@@ -171,6 +171,8 @@ export default function InvoicePage() {
       url?: string;
     };
   } | null>(null);
+  const [invoiceImageUrl, setInvoiceImageUrl] = useState<string | null>(null);
+  const [showInvoiceImageModal, setShowInvoiceImageModal] = useState(false);
 
   async function load(page: number = 1) {
     setLoading(true);
@@ -342,8 +344,7 @@ export default function InvoicePage() {
     return true;
   });
 
-  async function viewInvoice(id: number, documentId: string) {
-    console.log(selectedInvoice);
+  async function loadInvoiceDetail(id: number, documentId: string): Promise<InvoiceDetail> {
     try {
       // Try to get invoice with populate first
       let json;
@@ -396,11 +397,32 @@ export default function InvoicePage() {
         tableName: a?.tableName
       };
       
+      return invoiceDetail;
+    } catch (error) {
+      console.error('Error loading invoice detail:', error);
+      throw error;
+    }
+  }
+
+  async function viewInvoice(id: number, documentId: string) {
+    try {
+      const invoiceDetail = await loadInvoiceDetail(id, documentId);
       setSelectedInvoice(invoiceDetail);
       setShowViewModal(true);
     } catch (error) {
-      console.error('Error loading invoice detail:', error);
       alert('Lỗi tải chi tiết hóa đơn');
+    }
+  }
+
+  async function exportInvoiceAsImage(id: number, documentId: string) {
+    try {
+      const invoiceDetail = await loadInvoiceDetail(id, documentId);
+      const imageUrl = await generateInvoiceImage(invoiceDetail);
+      setInvoiceImageUrl(imageUrl);
+      setShowInvoiceImageModal(true);
+    } catch (error) {
+      console.error('Error exporting invoice:', error);
+      alert('Lỗi khi xuất hóa đơn');
     }
   }
 
@@ -410,6 +432,208 @@ export default function InvoicePage() {
       setBankInfo(info);
     } catch (error) {
       console.error('Error loading bank info:', error);
+    }
+  }
+
+  // Function to generate invoice as image
+  async function generateInvoiceImage(invoice: InvoiceDetail): Promise<string> {
+    // Get full URL for QR image
+    const qrImageUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/images/QR_bank.png`
+      : '/images/QR_bank.png';
+    
+    // Create a hidden div to render invoice
+    const invoiceDiv = document.createElement('div');
+    invoiceDiv.id = 'temp-invoice-export';
+    invoiceDiv.style.position = 'absolute';
+    invoiceDiv.style.left = '-9999px';
+    invoiceDiv.style.width = '600px';
+    invoiceDiv.style.backgroundColor = 'white';
+    invoiceDiv.style.color = 'black';
+    invoiceDiv.style.fontFamily = 'Arial, sans-serif';
+    invoiceDiv.style.padding = '24px';
+    invoiceDiv.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 16px;">
+        <h1 style="font-size: 24px; font-weight: bold; color: #000; margin: 0 0 8px 0;">HÓA ĐƠN THUÊ BÀN</h1>
+        <p style="font-size: 12px; color: #666; margin: 4px 0;">Mã hóa đơn: ${invoice.code}</p>
+        <p style="font-size: 12px; color: #666; margin: 4px 0;">Ngày: ${new Date(invoice.createdAt).toLocaleDateString('vi-VN')}</p>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin khách hàng:</h3>
+        <div style="font-size: 12px; line-height: 1.6;">
+          <div><span style="font-weight: bold;">Tên:</span> ${invoice.customerName || invoice.customer?.name || 'N/A'}</div>
+          <div><span style="font-weight: bold;">Mã KH:</span> ${invoice.customerCode || invoice.customer?.customerCode || 'N/A'}</div>
+          <div><span style="font-weight: bold;">SĐT:</span> ${invoice.customerPhone || invoice.customer?.phone || 'Chưa có'}</div>
+          <div><span style="font-weight: bold;">Giờ còn lại:</span> ${formatMinutesToHoursMinutes(invoice.remainingMinutes ?? 0)}</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin thuê:</h3>
+        <div style="font-size: 12px; line-height: 1.6;">
+          <div><span style="font-weight: bold;">Bàn:</span> ${invoice.tableName || 'Chưa có thông tin'}</div>
+          <div><span style="font-weight: bold;">Thời gian bắt đầu:</span> ${invoice.rentalStartAt ? new Date(invoice.rentalStartAt).toLocaleString('vi-VN') : 'Chưa có thông tin'}</div>
+          <div><span style="font-weight: bold;">Thời gian kết thúc:</span> ${invoice.rentalEndAt ? new Date(invoice.rentalEndAt).toLocaleString('vi-VN') : 'Chưa có thông tin'}</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Chi tiết dịch vụ:</h3>
+        <div style="border: 1px solid #000; border-radius: 4px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; background-color: #f5f5f5; font-weight: bold; font-size: 12px;">
+            <div>Dịch vụ</div>
+            <div style="text-align: center;">Số lượng</div>
+            <div style="text-align: right;">Đơn giá</div>
+            <div style="text-align: right;">Thành tiền</div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+            <div>Thuê bàn</div>
+            <div style="text-align: center;">${formatMinutesToHoursMinutes(invoice.rentalMinutes || 0)}</div>
+            <div style="text-align: right;">
+              ${invoice.serviceDetails?.pricing?.rentalCost && invoice.serviceDetails.pricing.rentalCost > 0
+                ? `${(Math.round(invoice.serviceDetails.pricing.rentalCost / (invoice.rentalMinutes || 1)) === 833 ? 50000 : 45000).toLocaleString('vi-VN')}đ/giờ`
+                : '0đ/giờ'}
+            </div>
+            <div style="text-align: right;">
+              ${invoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }) || '0'}đ
+            </div>
+          </div>
+          
+          ${invoice.serviceDetails?.accessories?.map((acc: any) => `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+              <div>${acc.name}</div>
+              <div style="text-align: center;">${acc.quantity}</div>
+              <div style="text-align: right;">${acc.unitPrice.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}đ</div>
+              <div style="text-align: right;">${acc.total.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}đ</div>
+            </div>
+          `).join('') || ''}
+          
+          ${invoice.serviceDetails?.package ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+              <div>${invoice.serviceDetails.package.name}</div>
+              <div style="text-align: center;">1</div>
+              <div style="text-align: right;">${invoice.serviceDetails.package.price.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}đ</div>
+              <div style="text-align: right;">${invoice.serviceDetails.package.price.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}đ</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; line-height: 1.8;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Tạm tính:</span>
+          <span>${invoice.subtotal.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })}đ</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Giảm giá:</span>
+          <span>${invoice.discount.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })}đ</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 8px; margin-top: 8px;">
+          <span>TỔNG CỘNG:</span>
+          <span>${invoice.total.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })}đ</span>
+        </div>
+      </div>
+      
+      ${bankInfo ? `
+        <div style="background-color: #f5f5f5; padding: 16px; border-radius: 4px; margin-top: 16px;">
+          <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin chuyển khoản:</h3>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            <div style="font-size: 12px; line-height: 1.6;">
+              ${bankInfo.accountName ? `<div><span style="font-weight: bold;">Chủ tài khoản:</span> ${bankInfo.accountName}</div>` : ''}
+              ${bankInfo.bankName ? `<div><span style="font-weight: bold;">Ngân hàng:</span> ${bankInfo.bankName}</div>` : ''}
+              ${bankInfo.accountNumber ? `<div><span style="font-weight: bold;">Số tài khoản:</span> ${bankInfo.accountNumber}</div>` : ''}
+            </div>
+            <div style="text-align: center;">
+              <img 
+                src="${qrImageUrl}" 
+                alt="QR Code" 
+                style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; border-radius: 4px; display: block; margin: 0 auto;"
+                crossorigin="anonymous"
+              />
+            </div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div style="text-align: center; font-size: 12px; color: #666; margin-top: 16px;">
+        Cảm ơn quý khách đã sử dụng dịch vụ!
+      </div>
+    `;
+    
+    document.body.appendChild(invoiceDiv);
+    
+    try {
+      // Wait for images to load
+      const images = invoiceDiv.getElementsByTagName('img');
+      const imagePromises = Array.from(images).map((img) => {
+        return new Promise<void>((resolve, reject) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(`Failed to load image: ${img.src}`));
+            // Timeout after 5 seconds
+            setTimeout(() => reject(new Error('Image load timeout')), 5000);
+          }
+        });
+      });
+      
+      await Promise.all(imagePromises);
+      
+      // Small delay to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(invoiceDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        width: 600,
+        logging: false,
+        imageTimeout: 10000,
+        onclone: (clonedDoc) => {
+          // Ensure images are visible in cloned document
+          const clonedImages = clonedDoc.querySelectorAll('img');
+          clonedImages.forEach((img) => {
+            (img as HTMLImageElement).style.display = 'block';
+            (img as HTMLImageElement).style.visibility = 'visible';
+          });
+        }
+      });
+      
+      const imageUrl = canvas.toDataURL('image/png', 1.0);
+      document.body.removeChild(invoiceDiv);
+      return imageUrl;
+    } catch (err) {
+      console.error('Error generating invoice image:', err);
+      document.body.removeChild(invoiceDiv);
+      throw err;
     }
   }
 
@@ -544,10 +768,9 @@ export default function InvoicePage() {
                     <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
                       <button
                         className="text-[#00203FFF] hover:text-[#001a33] mr-2"
-                        onClick={() => viewInvoice(invoice.id, invoice.documentId)}
+                        onClick={() => exportInvoiceAsImage(invoice.id, invoice.documentId)}
                       >
-                                        <Image className="w-4 h-4" src="/images/search.png" alt="Tìm kiếm" width={16} height={16} unoptimized/>
-
+                        <Image className="w-4 h-4" src="/images/search.png" alt="Xuất hóa đơn" width={16} height={16} unoptimized/>
                       </button>
                     </td>
                   </tr>
@@ -642,266 +865,37 @@ export default function InvoicePage() {
         )}
       </div>
 
-      {/* View Invoice Modal */}
-      {showViewModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+
+
+      {/* Invoice Image Modal */}
+      {showInvoiceImageModal && invoiceImageUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg sm:text-xl font-semibold">Hóa đơn {selectedInvoice.code}</h2>
-                <div className="flex gap-2">
-                  <button
-                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                    onClick={() => setShowViewModal(false)}
-                  >
-                    Đóng
-                  </button>
-                </div>
-              </div>
-
-              {/* Invoice Content */}
-              <div id="invoice-content" className="space-y-4" style={{ backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', padding: '24px' }}>
-                {/* Header */}
-                <div className="text-center border-b pb-4" style={{ borderBottom: '2px solid #000' }}>
-                  <h1 className="text-2xl font-bold" style={{ fontSize: '24px', fontWeight: 'bold', color: '#000' }}>HÓA ĐƠN THUÊ BÀN</h1>
-                  <p className="text-sm text-gray-600" style={{ fontSize: '12px', color: '#666' }}>Mã hóa đơn: {selectedInvoice.code}</p>
-                  <p className="text-sm text-gray-600" style={{ fontSize: '12px', color: '#666' }}>Ngày: {new Date(selectedInvoice.createdAt).toLocaleDateString('vi-VN')}</p>
-                </div>
-
-                {/* Customer Info */}
-                <div className="grid gap-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Thông tin khách hàng:</h3>
-                    <div className="text-sm space-y-1">
-                      <div><span className="font-medium">Tên:</span> {selectedInvoice.customerName || selectedInvoice.customer.name}</div>
-                      <div><span className="font-medium">Mã KH:</span> {selectedInvoice.customerCode || 'N/A'}</div>
-                      <div><span className="font-medium">SĐT:</span> {selectedInvoice.customerPhone || selectedInvoice.customer.phone || 'Chưa có'}</div>
-                      {/* <div><span className="font-medium">Giờ còn lại:</span> {formatMinutesToHoursMinutes( selectedInvoice.remainingMinutes || selectedInvoice.customer.remainingMinutes || 0)}</div> */}
-                    </div>
-                  </div>
-                  {/* <div>
-                    <h3 className="font-semibold mb-2">Thông tin hóa đơn:</h3>
-                    <div className="text-sm space-y-1">
-                      <div><span className="font-medium">Trạng thái:</span> 
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          selectedInvoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          selectedInvoice.status === 'unpaid' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {selectedInvoice.status === 'paid' ? 'Đã thanh toán' :
-                           selectedInvoice.status === 'unpaid' ? 'Chưa thanh toán' : 'Đã hủy'}
-                        </span>
-                      </div>
-                      <div><span className="font-medium">Phương thức:</span> {selectedInvoice.paymentMethod || 'Chưa chọn'}</div>
-                    </div>
-                  </div> */}
-                </div>
-
-                {/* Rental Info */}
-                <div>
-                  <h3 className="font-semibold mb-2">Thông tin thuê:</h3>
-                  <div className="text-sm space-y-1">
-                    <div><span className="font-medium">Bàn:</span> {selectedInvoice.tableName || 'Chưa có thông tin'}</div>
-                    <div><span className="font-medium">Thời gian bắt đầu:</span> {selectedInvoice.rentalStartAt ? new Date(selectedInvoice.rentalStartAt).toLocaleString('vi-VN') : 'Chưa có thông tin'}</div>
-                    <div><span className="font-medium">Thời gian kết thúc:</span> {selectedInvoice.rentalEndAt ? new Date(selectedInvoice.rentalEndAt).toLocaleString('vi-VN') : 'Chưa có thông tin'}</div>
-                  </div>
-                  
-                </div>
-
-                {/* Services */}
-                <div>
-                  <h3 className="font-semibold mb-2" style={{ fontWeight: 'bold', marginBottom: '8px' }}>Chi tiết dịch vụ:</h3>
-                  <div className="border rounded" style={{ border: '1px solid #000', borderRadius: '4px' }}>
-                    <div className="grid grid-cols-4 gap-2 p-2 bg-gray-50 font-medium text-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', backgroundColor: '#f5f5f5', fontWeight: 'bold', fontSize: '12px' }}>
-                      <div>Dịch vụ</div>
-                      <div className="text-center">Số lượng</div>
-                      <div className="text-right">Đơn giá</div>
-                      <div className="text-right">Thành tiền</div>
-                    </div>
-                    
-                    {/* Rental service */}
-                    <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
-                      <div>Thuê bàn</div>
-                      <div className="text-center">{formatMinutesToHoursMinutes(selectedInvoice.rentalMinutes || 0)}</div>
-                      <div className="text-right">
-                        {/* {selectedInvoice.serviceDetails?.pricing?.rentalCost && selectedInvoice.serviceDetails.pricing.rentalCost > 0 ? 
-                          `${Math.round(selectedInvoice.serviceDetails.pricing.rentalCost / (selectedInvoice.rentalMinutes || 1)).toLocaleString('en-US', {
-                              minimumFractionDigits: 0, // không hiển thị phần thập phân
-                              maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-                            })}đ/phút` : 
-                          '0đ/phút'
-                        } */}
-                      {selectedInvoice.serviceDetails?.pricing?.rentalCost &&
-                        selectedInvoice.serviceDetails.pricing.rentalCost > 0
-                          ? `${
-                              (
-                                Math.round(
-                                  selectedInvoice.serviceDetails.pricing.rentalCost /
-                                    (selectedInvoice.rentalMinutes || 1)
-                                ) === 833
-                                  ? 50000
-                                  : 45000
-                              ).toLocaleString('vi-VN')
-                            }đ/giờ`
-                          : '0đ/giờ'}
-                        </div>
-                      <div className="text-right">{selectedInvoice.serviceDetails?.pricing?.rentalCost?.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-}) || '0'}đ</div>
-                    </div>
-                    
-                    {/* Accessories from serviceDetails */}
-                    {selectedInvoice.serviceDetails?.accessories?.map((accessory, idx: number) => (
-                      <div key={idx} className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
-                        <div>{accessory.name}</div>
-                        <div className="text-center">{accessory.quantity}</div>
-                        <div className="text-right">{accessory.unitPrice.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</div>
-                        <div className="text-right">{accessory.total.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</div>
-                      </div>
-                    ))}
-                    
-                    {/* Package from serviceDetails */}
-                    {selectedInvoice.serviceDetails?.package && (
-                      <div className="grid grid-cols-4 gap-2 p-2 text-sm border-b" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '8px', fontSize: '12px', borderBottom: '1px solid #ccc' }}>
-                        <div>{selectedInvoice.serviceDetails.package.name}</div>
-                        <div className="text-center">1</div>
-                        <div className="text-right">{selectedInvoice.serviceDetails.package.price.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</div>
-                        <div className="text-right">{selectedInvoice.serviceDetails.package.price.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Totals */}
-                <div className="space-y-2" style={{ marginTop: '16px' }}>
-                  <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Tạm tính:</span>
-                    <span>{selectedInvoice.subtotal.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
-                  </div>
-                  <div className="flex justify-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Giảm giá:</span>
-                    <span>{selectedInvoice.discount.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
-                  </div>
-                  <div className="flex justify-between font-semibold text-lg border-t pt-2" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px' }}>
-                    <span>TỔNG CỘNG:</span>
-                    <span>{selectedInvoice.total.toLocaleString('en-US', {
-  minimumFractionDigits: 0, // không hiển thị phần thập phân
-  maximumFractionDigits: 0, // làm tròn đến số nguyên gần nhất
-})}đ</span>
-                  </div>
-                </div>
-
-                {/* Bank Info */}
-                {bankInfo && (
-                  <div className="bg-gray-50 p-4 rounded" style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '4px' }}>
-                    <h3 className="font-semibold mb-2" style={{ fontWeight: 'bold', marginBottom: '8px' }}>Thông tin chuyển khoản:</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 place-items-center" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                      <div className="text-sm space-y-1" style={{ fontSize: '12px' }}>
-                         {bankInfo.accountName && (
-                          <div><span className="font-medium" style={{ fontWeight: 'bold' }}>Chủ tài khoản:</span> {bankInfo.accountName}</div>
-                        )}
-                        {bankInfo.bankName && (
-                          <div><span className="font-medium" style={{ fontWeight: 'bold' }}>Ngân hàng:</span> {bankInfo.bankName}</div>
-                        )}
-                        {bankInfo.accountNumber && (
-                          <div><span className="font-medium" style={{ fontWeight: 'bold' }}>Số tài khoản:</span> {bankInfo.accountNumber}</div>
-                        )}
-                      <div className="text-center">
-                        {bankInfo.qrImage?.url ? (
-                          <Image 
-                            src="/images/QR_bank.png"
-                            alt="QR Code"
-                            unoptimized
-                            style={{ 
-                              maxWidth: '200px', 
-                              maxHeight: '200px',
-                              border: '1px solid #ccc',
-                              borderRadius: '4px'
-                            }}
-                            width={200}
-                            height={200}
-                            className="w-full h-full"
-                          />
-                        ) : (
-                          <div style={{ 
-                            width: '200px', 
-                            height: '200px',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#f9f9f9',
-                            fontSize: '10px',
-                            color: '#666'
-                          }}>
-                            Chưa có QR
-                          </div>
-                        )}
-                      </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="text-center text-sm text-gray-600" style={{ textAlign: 'center', fontSize: '12px', color: '#666', marginTop: '16px' }}>
-                  Cảm ơn quý khách đã sử dụng dịch vụ!
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
-                <button 
-                  className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33]"
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
                   onClick={() => {
-                    const element = document.getElementById('invoice-content');
-                    if (!element) return;
-                  
-                    html2canvas(element, {
-                      backgroundColor: '#ffffff',
-                      scale: 2,
-                      useCORS: true,
-                      allowTaint: true,
-                      ignoreElements: (element) => {
-                        return element.classList.contains('ignore-export');
-                      }
-                    })
-                      .then(canvas => {
-                        const link = document.createElement('a');
-                        link.download = `hoa-don-${Date.now()}.png`;
-                        link.href = canvas.toDataURL('image/png', 1.0);
-                        link.click();
-                      })
-                      .catch(e => {
-                        console.log("Lỗi tạo ảnh:", e);
-                      });
+                    setShowInvoiceImageModal(false);
+                    setInvoiceImageUrl(null);
                   }}
                 >
-                  Lưu ảnh
+                  ×
                 </button>
+              </div>
+
+              <div className="flex flex-col gap-2 items-center justify-center mb-4">
+                <img 
+                  src={invoiceImageUrl} 
+                  alt="Hóa đơn" 
+                  className="max-w-full h-auto border border-gray-300 rounded"
+                  style={{ maxHeight: '70vh' }}
+                />
                 <button 
                   className="px-4 py-2 border rounded hover:bg-gray-100"
                   onClick={() => {
-                    setShowViewModal(false);
-                    setSelectedInvoice(null);
+                    setShowInvoiceImageModal(false);
+                    setInvoiceImageUrl(null);
                   }}
                 >
                   Đóng

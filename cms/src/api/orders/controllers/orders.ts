@@ -499,7 +499,8 @@ export default ({ strapi }: { strapi: any }) => ({
         rentalEndAt: endAt,
         rentalMinutes: actualMinutes,
         rentalType: rental.type,
-        tableName
+        tableName,
+        remainingMinutes: newRemainingMinutes
       }
     });
     
@@ -529,6 +530,197 @@ export default ({ strapi }: { strapi: any }) => ({
         subtotal: finalSubtotal, 
         discount: finalDiscount, 
         total: finalTotal 
+      },
+      bank
+    };
+  },
+
+  async createManualInvoice(ctx) {
+    const { customerId, startAt, endAt, discount = 0, accessories = [] } = ctx.request.body || {};
+    
+    if (!customerId) ctx.throw(400, 'customerId required');
+    if (!startAt) ctx.throw(400, 'startAt required');
+    if (!endAt) ctx.throw(400, 'endAt required');
+    
+    const startTime = new Date(startAt);
+    const endTime = new Date(endAt);
+    
+    if (endTime <= startTime) ctx.throw(400, 'endAt must be after startAt');
+    
+    // Calculate actual minutes used (rounded up to next minute)
+    const diffMs = endTime.getTime() - startTime.getTime();
+    const actualMinutes = Math.ceil(diffMs / (1000 * 60)); // Round up to next minute
+    const actualHours = actualMinutes / 60; // Convert to hours for display
+    
+    // Get customer info
+    const customer = await strapi.entityService.findOne('api::customer.customer', customerId, {
+      fields: ['id', 'name', 'phone', 'customerCode', 'remainingMinutes']
+    });
+    if (!customer) ctx.throw(404, 'Customer not found');
+    
+    const remainingMinutes = customer.remainingMinutes || 0;
+    
+    // Calculate cost based on new logic (by minutes)
+    let totalCost = 0;
+    let usedPackageMinutes = 0;
+    let paidMinutes = 0;
+    
+    if (actualMinutes <= remainingMinutes) {
+      // Use package minutes completely
+      usedPackageMinutes = actualMinutes;
+      paidMinutes = 0;
+    } else {
+      // Use remaining package minutes + pay for extra minutes
+      usedPackageMinutes = remainingMinutes;
+      paidMinutes = actualMinutes - remainingMinutes;
+      
+      // Calculate cost based on paid minutes
+      // 50k/hour = 833.33/minute, 45k/hour = 750/minute
+      const paidHours = paidMinutes / 60;
+      let minuteRate = 0;
+      if (paidHours <= 3) {
+        minuteRate = 50000 / 60; // 833.33/minute
+      } else {
+        minuteRate = 45000 / 60; // 750/minute
+      }
+      totalCost = paidMinutes * minuteRate;
+    }
+    
+    // Update customer remaining minutes directly
+    const newRemainingMinutes = Math.max(0, remainingMinutes - usedPackageMinutes);
+    
+    await strapi.entityService.update('api::customer.customer', customerId, {
+      data: { remainingMinutes: newRemainingMinutes }
+    });
+    
+    // Compute accessories lines
+    let accessoriesTotal = 0;
+    const accessoriesList = [];
+    
+    if (Array.isArray(accessories) && accessories.length > 0) {
+      for (const acc of accessories) {
+        const accessory = await strapi.entityService.findOne('api::accessory.accessory', acc.accessoryId);
+        if (accessory) {
+          const unitPrice = Number(acc.unitPrice || accessory.price || 0);
+          const quantity = Number(acc.quantity || 1);
+          const total = unitPrice * quantity;
+          accessoriesTotal += total;
+          accessoriesList.push({
+            name: accessory.name,
+            unitPrice,
+            quantity,
+            total
+          });
+        }
+      }
+    }
+    
+    const subtotal = totalCost + accessoriesTotal;
+    const finalDiscount = Number(discount || 0);
+    const total = subtotal - finalDiscount;
+    
+    // Create rental record for manual invoice
+    const rental = await strapi.entityService.create('api::rental.rental', {
+      data: {
+        type: 'short',
+        customer: customerId,
+        hours: actualHours,
+        minutes: actualMinutes,
+        totalAmount: total,
+        startAt: startAt,
+        endAt: endAt
+      }
+    });
+    
+    // Create rental accessories if any
+    if (accessoriesList.length > 0) {
+      for (const acc of accessories) {
+        const accessory = await strapi.entityService.findOne('api::accessory.accessory', acc.accessoryId);
+        if (accessory) {
+          await strapi.entityService.create('api::rental-accessory.rental-accessory', {
+            data: {
+              rental: rental.id,
+              accessory: accessory.id,
+              quantity: acc.quantity || 1,
+              unitPrice: acc.unitPrice || accessory.price || 0,
+              totalPrice: (acc.unitPrice || accessory.price || 0) * (acc.quantity || 1)
+            }
+          });
+        }
+      }
+    }
+    
+    // Prepare service details
+    const serviceDetails = {
+      rental: {
+        type: 'short',
+        minutes: actualMinutes,
+        hours: actualHours,
+        startAt: startAt,
+        endAt: endAt,
+        cost: totalCost
+      },
+      accessories: accessoriesList,
+      package: null,
+      pricing: {
+        rentalCost: totalCost,
+        accessoriesTotal,
+        packageTotal: 0,
+        subtotal,
+        discount: finalDiscount,
+        total
+      }
+    };
+    
+    // Create invoice
+    const invoice = await strapi.entityService.create('api::invoice.invoice', {
+      data: {
+        code: `INV-${Date.now()}`,
+        customer: customerId,
+        customerName: customer.name || 'Khách vãng lai',
+        customerPhone: customer.phone || '',
+        customerCode: customer.customerCode || '',
+        rental: rental.id,
+        subtotal,
+        discount: finalDiscount,
+        total,
+        status: 'unpaid',
+        serviceDetails,
+        rentalStartAt: startAt,
+        rentalEndAt: endAt,
+        rentalMinutes: actualMinutes,
+        rentalType: 'short',
+        tableName: 'Thủ công',
+        remainingMinutes: newRemainingMinutes
+      }
+    });
+    
+    // Bank info
+    const bankRaw = await strapi.entityService.findMany('api::bank-info.bank-info', { populate: { qrImage: true } });
+    const bank = Array.isArray(bankRaw) ? bankRaw[0] : bankRaw;
+    
+    ctx.body = {
+      rental,
+      invoice,
+      breakdown: {
+        minutes: actualMinutes,
+        hours: actualHours,
+        remainingMinutes: newRemainingMinutes,
+        remainingHours: Math.floor(newRemainingMinutes / 60) + (newRemainingMinutes % 60) / 60,
+        usedPackageMinutes,
+        usedPackageHours: usedPackageMinutes / 60,
+        paidMinutes,
+        paidHours: paidMinutes / 60,
+        minuteRate: paidMinutes > 0 ? (paidMinutes / 60 <= 3 ? 50000 / 60 : 45000 / 60) : 0,
+        hourlyRate: paidMinutes > 0 ? (paidMinutes / 60 <= 3 ? 50000 : 45000) : 0,
+        rentalCost: totalCost,
+        accessories: accessoriesList,
+        accessoriesTotal,
+        package: null,
+        packageTotal: 0,
+        subtotal,
+        discount: finalDiscount,
+        total
       },
       bank
     };

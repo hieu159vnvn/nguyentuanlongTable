@@ -63,6 +63,7 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ discount })
   }),
+  createManualInvoice: (body: Record<string, unknown>) => request('/api/orders/create-manual-invoice', { method: 'POST', body: JSON.stringify(body) }),
   createCustomer: (body: Record<string, unknown>) => request('/api/customers', { method: 'POST', body: JSON.stringify(body) }),
   updateCustomer: (id: number, body: Record<string, unknown>) => request(`/api/customers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCustomer: (id: number) => request(`/api/customers/${id}`, { method: 'DELETE' }),

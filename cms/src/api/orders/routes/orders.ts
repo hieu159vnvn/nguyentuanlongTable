@@ -35,6 +35,12 @@ export default {
       path: '/tables/:tableId/settle',
       handler: 'orders.settleTable',
       config: { auth: false }
+    },
+    {
+      method: 'POST',
+      path: '/orders/create-manual-invoice',
+      handler: 'orders.createManualInvoice',
+      config: { auth: false }
     }
   ]
 };

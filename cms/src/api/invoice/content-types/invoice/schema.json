@@ -79,6 +79,10 @@
     },
     "tableName": {
       "type": "string"
+    },
+    "remainingMinutes": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

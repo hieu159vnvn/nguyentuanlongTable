@@ -598,6 +598,7 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
       ['cash', 'bank_transfer', 'card']
     >;
     publishedAt: Schema.Attribute.DateTime;
+    remainingMinutes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     rental: Schema.Attribute.Relation<'oneToOne', 'api::rental.rental'>;
     rentalEndAt: Schema.Attribute.DateTime;
     rentalMinutes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;

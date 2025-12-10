@@ -48,6 +48,18 @@ export default function BookingPage() {
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [discount, setDiscount] = useState<number>(0);
   const [purchasedPackage, setPurchasedPackage] = useState<any>(null);
+  const [invoiceImageUrl, setInvoiceImageUrl] = useState<string | null>(null);
+  const [showInvoiceImageModal, setShowInvoiceImageModal] = useState(false);
+  const [manualTimeIn, setManualTimeIn] = useState<string>('');
+  const [manualTimeOut, setManualTimeOut] = useState<string>('');
+  const [manualCustomerId, setManualCustomerId] = useState<number | ''>('');
+  const [manualCustomerSearchTerm, setManualCustomerSearchTerm] = useState('');
+  const [showManualCustomerDropdown, setShowManualCustomerDropdown] = useState(false);
+  const [manualDiscount, setManualDiscount] = useState<number>(0);
+  const [showManualInvoiceModal, setShowManualInvoiceModal] = useState(false);
+  const [manualSelectedAccessories, setManualSelectedAccessories] = useState<{accessoryId:number; quantity:number}[]>([]);
+  const [manualSelectedPackage, setManualSelectedPackage] = useState<number | null>(null);
+  const [isCreatingManualInvoice, setIsCreatingManualInvoice] = useState(false);
 
   // Filter customers based on search term
   const filteredCustomers = customers.filter(customer => {
@@ -138,6 +150,19 @@ export default function BookingPage() {
     setSelectedAccessories(prev => prev.map(a => a.accessoryId === id ? { ...a, quantity: qty } : a));
   }
 
+  function toggleManualAccessory(id: number) {
+    const exists = manualSelectedAccessories.find(a => a.accessoryId === id);
+    if (exists) {
+      setManualSelectedAccessories(prev => prev.filter(a => a.accessoryId !== id));
+    } else {
+      setManualSelectedAccessories(prev => [...prev, { accessoryId: id, quantity: 1 }]);
+    }
+  }
+
+  function setManualAccessoryQty(id: number, qty: number) {
+    setManualSelectedAccessories(prev => prev.map(a => a.accessoryId === id ? { ...a, quantity: qty } : a));
+  }
+
   function resetRentalForm() {
     setSelectedCustomerId('');
     setCustomerSearchTerm('');
@@ -146,6 +171,193 @@ export default function BookingPage() {
     setSelectedAccessories([]);
     setDiscount(0);
     setPricingResult(null);
+  }
+
+  // Function to generate invoice as image
+  async function generateInvoiceImage(invoiceData: any, tableInfo: any): Promise<string> {
+    // Get full URL for QR image
+    const qrImageUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/images/QR_bank.png`
+      : '/images/QR_bank.png';
+    
+    // Create a hidden div to render invoice
+    const invoiceDiv = document.createElement('div');
+    invoiceDiv.id = 'temp-invoice-export';
+    invoiceDiv.style.position = 'absolute';
+    invoiceDiv.style.left = '-9999px';
+    invoiceDiv.style.width = '600px';
+    invoiceDiv.style.backgroundColor = 'white';
+    invoiceDiv.style.color = 'black';
+    invoiceDiv.style.fontFamily = 'Arial, sans-serif';
+    invoiceDiv.style.padding = '24px';
+    invoiceDiv.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 16px;">
+        <h1 style="font-size: 24px; font-weight: bold; color: #000; margin: 0 0 8px 0;">HÓA ĐƠN THUÊ BÀN</h1>
+        <p style="font-size: 12px; color: #666; margin: 4px 0;">Mã hóa đơn: ${invoiceData?.code || `INV-${Date.now()}`}</p>
+        <p style="font-size: 12px; color: #666; margin: 4px 0;">Ngày: ${new Date().toLocaleDateString('vi-VN')}</p>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin khách hàng:</h3>
+        <div style="font-size: 12px; line-height: 1.6;">
+          <div><span style="font-weight: bold;">Tên:</span> ${invoiceData.customer?.name || 'N/A'}</div>
+          <div><span style="font-weight: bold;">Mã KH:</span> ${invoiceData.customer?.customerCode || 'N/A'}</div>
+          <div><span style="font-weight: bold;">SĐT:</span> ${invoiceData.customer?.phone || 'Chưa có'}</div>
+          <div><span style="font-weight: bold;">Giờ còn lại:</span> ${formatMinutesToHoursMinutes(invoiceData.remainingMinutes ?? invoiceData.serviceDetails?.remainingMinutes ?? invoiceData.customer?.remainingMinutes ?? tableInfo?.rental?.customer?.remainingMinutes ?? 0)}</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin thuê:</h3>
+        <div style="font-size: 12px; line-height: 1.6;">
+          <div><span style="font-weight: bold;">Bàn:</span> ${tableInfo?.name || tableInfo?.code || 'N/A'}</div>
+          <div><span style="font-weight: bold;">Thời gian bắt đầu:</span> ${invoiceData.serviceDetails?.rental?.startAt ? new Date(invoiceData.serviceDetails.rental.startAt).toLocaleString('vi-VN') : (tableInfo?.rental?.startAt ? new Date(tableInfo.rental.startAt).toLocaleString('vi-VN') : 'N/A')}</div>
+          ${invoiceData.serviceDetails?.rental?.endAt ? `<div><span style="font-weight: bold;">Thời gian kết thúc:</span> ${new Date(invoiceData.serviceDetails.rental.endAt).toLocaleString('vi-VN')}</div>` : ''}
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Chi tiết dịch vụ:</h3>
+        <div style="border: 1px solid #000; border-radius: 4px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; background-color: #f5f5f5; font-weight: bold; font-size: 12px;">
+            <div>Dịch vụ</div>
+            <div style="text-align: center;">Số lượng</div>
+            <div style="text-align: right;">Đơn giá</div>
+            <div style="text-align: right;">Thành tiền</div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+            <div>Thuê bàn</div>
+            <div style="text-align: center;">${formatMinutesToHoursMinutes(invoiceData.rental.minutes)}</div>
+            <div style="text-align: right;">
+              ${invoiceData.rental.rentalCost > 0
+                ? `${(Math.round(invoiceData.rental.rentalCost / (invoiceData.rental.minutes || 1)) === 833 ? 50000 : 45000).toLocaleString('vi-VN')}đ/giờ`
+                : '0đ/giờ'}
+            </div>
+            <div style="text-align: right;">
+              ${invoiceData.rental.rentalCost.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}đ
+            </div>
+          </div>
+          
+          ${invoiceData.rental.accessories?.map((acc: any) => `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+              <div>${acc.name}</div>
+              <div style="text-align: center;">${acc.quantity}</div>
+              <div style="text-align: right;">${acc.unitPrice.toLocaleString()}đ</div>
+              <div style="text-align: right;">${acc.total.toLocaleString()}đ</div>
+            </div>
+          `).join('') || ''}
+          
+          ${invoiceData.package ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; font-size: 12px; border-bottom: 1px solid #ccc;">
+              <div>${invoiceData.package.name}</div>
+              <div style="text-align: center;">1</div>
+              <div style="text-align: right;">${invoiceData.package.price.toLocaleString()}đ</div>
+              <div style="text-align: right;">${invoiceData.package.price.toLocaleString()}đ</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; line-height: 1.8;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Tạm tính:</span>
+          <span>${invoiceData.serviceDetails?.pricing?.subtotal?.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }) || '0'}đ</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Giảm giá:</span>
+          <span>${invoiceData.serviceDetails?.pricing?.discount?.toLocaleString() || '0'}đ</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 8px; margin-top: 8px;">
+          <span>TỔNG CỘNG:</span>
+          <span>${invoiceData.serviceDetails?.pricing?.total?.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }) || '0'}đ</span>
+        </div>
+      </div>
+      
+      ${invoiceData.bankInfo ? `
+        <div style="background-color: #f5f5f5; padding: 16px; border-radius: 4px; margin-top: 16px;">
+          <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Thông tin chuyển khoản:</h3>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            <div style="font-size: 12px; line-height: 1.6;">
+              ${invoiceData.bankInfo.accountName ? `<div><span style="font-weight: bold;">Chủ tài khoản:</span> ${invoiceData.bankInfo.accountName}</div>` : ''}
+              ${invoiceData.bankInfo.bankName ? `<div><span style="font-weight: bold;">Ngân hàng:</span> ${invoiceData.bankInfo.bankName}</div>` : ''}
+              ${invoiceData.bankInfo.accountNumber ? `<div><span style="font-weight: bold;">Số tài khoản:</span> ${invoiceData.bankInfo.accountNumber}</div>` : ''}
+            </div>
+            <div style="text-align: center;">
+              <img 
+                src="${qrImageUrl}" 
+                alt="QR Code" 
+                style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; border-radius: 4px; display: block; margin: 0 auto;"
+                crossorigin="anonymous"
+              />
+            </div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div style="text-align: center; font-size: 12px; color: #666; margin-top: 16px;">
+        Cảm ơn quý khách đã sử dụng dịch vụ!
+      </div>
+    `;
+    
+    document.body.appendChild(invoiceDiv);
+    
+    try {
+      // Wait for images to load
+      const images = invoiceDiv.getElementsByTagName('img');
+      const imagePromises = Array.from(images).map((img) => {
+        return new Promise<void>((resolve, reject) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(`Failed to load image: ${img.src}`));
+            // Timeout after 5 seconds
+            setTimeout(() => reject(new Error('Image load timeout')), 5000);
+          }
+        });
+      });
+      
+      await Promise.all(imagePromises);
+      
+      // Small delay to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(invoiceDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        width: 600,
+        logging: false,
+        imageTimeout: 10000,
+        onclone: (clonedDoc) => {
+          // Ensure images are visible in cloned document
+          const clonedImages = clonedDoc.querySelectorAll('img');
+          clonedImages.forEach((img) => {
+            (img as HTMLImageElement).style.display = 'block';
+            (img as HTMLImageElement).style.visibility = 'visible';
+          });
+        }
+      });
+      
+      const imageUrl = canvas.toDataURL('image/png', 1.0);
+      document.body.removeChild(invoiceDiv);
+      return imageUrl;
+    } catch (err) {
+      console.error('Error generating invoice image:', err);
+      document.body.removeChild(invoiceDiv);
+      throw err;
+    }
   }
 
   function closeRentalModal() {
@@ -159,7 +371,25 @@ export default function BookingPage() {
       {/* <h1 className="text-xl sm:text-2xl font-semibold">Quản lý bàn</h1> */}
 
       <section className="space-y-2 sm:space-y-3">
+        <div className="flex justify-between items-center">
         <div className="text-xl sm:text-xl font-bold">Danh sách bàn</div>
+        <button
+          className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base"
+          onClick={() => {
+            setShowManualInvoiceModal(true);
+            // Reset form
+            setManualCustomerId('');
+            setManualCustomerSearchTerm('');
+            setManualTimeIn('');
+            setManualTimeOut('');
+            setManualDiscount(0);
+            setManualSelectedAccessories([]);
+            setManualSelectedPackage(null);
+          }}
+        >
+          Xuất hóa đơn thủ công
+        </button>
+          </div>
         {loadingTables ? (
           <div className="text-sm sm:text-base">Đang tải...</div>
         ) : (
@@ -363,6 +593,354 @@ export default function BookingPage() {
                   }}>Bắt đầu thuê</button>
                 </div>
                 
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Invoice Modal */}
+      {showManualInvoiceModal && (
+        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-md sm:max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Xuất hóa đơn thủ công</h2>
+                <button 
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  onClick={() => {
+                    setShowManualInvoiceModal(false);
+                    setManualCustomerId('');
+                    setManualCustomerSearchTerm('');
+                    setManualTimeIn('');
+                    setManualTimeOut('');
+                    setManualDiscount(0);
+                    setManualSelectedAccessories([]);
+                    setManualSelectedPackage(null);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-3 sm:space-y-4">
+                <div className="grid gap-3 sm:gap-4">
+                  <div className="block">
+                    <span className="text-sm font-medium">Chọn khách hàng *</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="border rounded px-3 py-2 w-full text-sm sm:text-base"
+                        placeholder="Tìm kiếm theo tên hoặc số điện thoại..."
+                        value={manualCustomerSearchTerm}
+                        onChange={(e) => {
+                          setManualCustomerSearchTerm(e.target.value);
+                          setShowManualCustomerDropdown(true);
+                          if (!e.target.value) {
+                            setManualCustomerId('');
+                          }
+                        }}
+                        onFocus={() => setShowManualCustomerDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowManualCustomerDropdown(false), 200)}
+                      />
+                      
+                      {/* Dropdown results */}
+                      {showManualCustomerDropdown && manualCustomerSearchTerm && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {filteredCustomers.length > 0 ? (
+                            filteredCustomers.map(customer => (
+                              <div
+                                key={customer.id}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                onClick={() => {
+                                  setManualCustomerId(customer.id);
+                                  setManualCustomerSearchTerm(`${customer.name} ${customer.phone ? `(${customer.phone})` : ''}`);
+                                  setShowManualCustomerDropdown(false);
+                                }}
+                              >
+                                <div className="font-medium">{customer.name}</div>
+                                <div className="text-gray-600 text-xs">
+                                  {customer.phone && `${customer.phone} • `}
+                                  Còn {formatMinutesToHoursMinutes(customer.remainingMinutes)}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-gray-500 text-sm">
+                              Không tìm thấy khách hàng
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {manualCustomerId && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        Khách hàng: {customers.find(c => c.id === manualCustomerId)?.name} - 
+                        Giờ còn lại: {formatMinutesToHoursMinutes(customers.find(c => c.id === manualCustomerId)?.remainingMinutes || 0)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-sm font-medium block mb-2">Giờ vào *</span>
+                    <input
+                      type="datetime-local"
+                      className="border rounded px-3 py-2 w-full text-sm sm:text-base"
+                      value={manualTimeIn}
+                      onChange={(e) => setManualTimeIn(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <span className="text-sm font-medium block mb-2">Giờ ra *</span>
+                    <input
+                      type="datetime-local"
+                      className="border rounded px-3 py-2 w-full text-sm sm:text-base"
+                      value={manualTimeOut}
+                      onChange={(e) => setManualTimeOut(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-bold block mb-2">Mua thêm gói (tùy chọn)</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {packages.map((p:any)=> (
+                        <button
+                          key={p.id}
+                          className={`px-3 py-2 border rounded text-sm ${manualSelectedPackage === p.id ? 'bg-[#00203FFF] text-white border-[#00203FFF]' : 'hover:bg-gray-50'}`}
+                          onClick={() => setManualSelectedPackage(manualSelectedPackage === p.id ? null : p.id)}
+                        >
+                          {p.name} - {p.price.toLocaleString()}đ
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-sm mb-2 sm:mb-3 font-bold">Phụ kiện (tùy chọn)</div>
+                    <div className="space-y-2 max-h-60 sm:max-h-60 overflow-y-auto">
+                      {accessories.map(a => {
+                        const checked = manualSelectedAccessories.find(s => s.accessoryId === a.id);
+                        return (
+                          <div key={a.id} className="flex items-center gap-3 p-2 border rounded hover:bg-gray-50">
+                            <input 
+                              type="checkbox" 
+                              id={`manual-accessory-${a.id}`}
+                              checked={!!checked} 
+                              onChange={()=>toggleManualAccessory(a.id)}
+                              className="w-4 h-4"
+                            />
+                            <label htmlFor={`manual-accessory-${a.id}`} className="flex-1 cursor-pointer">
+                              <div className="font-medium text-sm">{a.name}</div>
+                              <div className="text-xs text-gray-600">{a.price.toLocaleString()}đ</div>
+                            </label>
+                            {checked && (
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-600">Số lượng:</label>
+                                <input 
+                                  type="number" 
+                                  min={1} 
+                                  max={99}
+                                  className="border rounded px-2 py-1 w-16 text-sm" 
+                                  value={checked.quantity} 
+                                  onChange={e=>setManualAccessoryQty(a.id, Number(e.target.value))}
+                                />
+                                <div className="text-xs text-blue-600 min-w-0">
+                                  = {(a.price * checked.quantity).toLocaleString()}đ
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {manualSelectedAccessories.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                        <div className="font-medium mb-2">Tổng phụ kiện đã chọn:</div>
+                        {manualSelectedAccessories.map(acc => {
+                          const accessory = accessories.find(a => a.id === acc.accessoryId);
+                          return (
+                            <div key={acc.accessoryId} className="flex justify-between text-xs mb-1">
+                              <span>{accessory?.name} x {acc.quantity}</span>
+                              <span>{(accessory?.price || 0) * acc.quantity}đ</span>
+                            </div>
+                          );
+                        })}
+                        <div className="border-t pt-2 mt-2 font-medium">
+                          Tổng: {manualSelectedAccessories.reduce((sum, acc) => {
+                            const accessory = accessories.find(a => a.id === acc.accessoryId);
+                            return sum + ((accessory?.price || 0) * acc.quantity);
+                          }, 0).toLocaleString()}đ
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-sm font-medium block mb-2">Giảm giá (đ)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="border rounded px-3 py-2 w-full text-sm sm:text-base"
+                      value={manualDiscount}
+                      onChange={(e) => setManualDiscount(Number(e.target.value))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <button 
+                    className="px-4 py-2 bg-[#00203FFF] text-white rounded hover:bg-[#001a33] text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed" 
+                    disabled={isCreatingManualInvoice}
+                    onClick={async () => {
+                      if (isCreatingManualInvoice) return;
+                      
+                      if (!manualCustomerId) {
+                        error('Vui lòng chọn khách hàng');
+                        return;
+                      }
+                      if (!manualTimeIn) {
+                        error('Vui lòng nhập giờ vào');
+                        return;
+                      }
+                      if (!manualTimeOut) {
+                        error('Vui lòng nhập giờ ra');
+                        return;
+                      }
+
+                      const timeIn = new Date(manualTimeIn);
+                      const timeOut = new Date(manualTimeOut);
+                      
+                      if (timeOut <= timeIn) {
+                        error('Giờ ra phải sau giờ vào');
+                        return;
+                      }
+
+                      setIsCreatingManualInvoice(true);
+                      try {
+                        // Prepare accessories for API
+                        const accessoriesPayload = manualSelectedAccessories.map(acc => {
+                          const accessory = accessories.find(a => a.id === acc.accessoryId);
+                          return {
+                            accessoryId: acc.accessoryId,
+                            quantity: acc.quantity,
+                            unitPrice: accessory?.price || 0
+                          };
+                        });
+
+                        // Call API to create manual invoice
+                        const result = await api.createManualInvoice({
+                          customerId: manualCustomerId,
+                          startAt: timeIn.toISOString(),
+                          endAt: timeOut.toISOString(),
+                          discount: manualDiscount,
+                          accessories: accessoriesPayload
+                        });
+
+                        // If package is selected, purchase it
+                        if (manualSelectedPackage) {
+                          const selectedPkg = packages.find(p => p.id === manualSelectedPackage);
+                          if (selectedPkg) {
+                            try {
+                              await api.purchasePackageOnly({
+                                customerId: manualCustomerId,
+                                packageId: manualSelectedPackage
+                              });
+                            } catch (pkgErr) {
+                              console.error('Error purchasing package:', pkgErr);
+                              // Continue even if package purchase fails
+                            }
+                          }
+                        }
+
+                        // Get customer info for display
+                        const customer = customers.find(c => c.id === manualCustomerId);
+                        if (!customer) {
+                          error('Không tìm thấy thông tin khách hàng');
+                          return;
+                        }
+
+                        // Get package info if selected
+                        const packageInfo = manualSelectedPackage 
+                          ? packages.find(p => p.id === manualSelectedPackage)
+                          : null;
+
+                        // Prepare invoice data for image generation
+                        const invoiceData = {
+                          code: result?.invoice?.code || `INV-${Date.now()}`,
+                          customer: customer,
+                          remainingMinutes: result?.breakdown?.remainingMinutes,
+                          rental: {
+                            minutes: result?.breakdown?.minutes || 0,
+                            hours: result?.breakdown?.hours || 0,
+                            accessories: result?.breakdown?.accessories || [],
+                            rentalCost: result?.breakdown?.rentalCost || 0,
+                            subtotal: result?.breakdown?.subtotal || 0,
+                            discount: manualDiscount,
+                            total: result?.breakdown?.total || 0
+                          },
+                          package: packageInfo ? {
+                            name: packageInfo.name,
+                            price: packageInfo.price,
+                            totalHours: packageInfo.totalHours,
+                            bonusHours: packageInfo.bonusHours
+                          } : null,
+                          serviceDetails: {
+                            rental: {
+                              type: 'short',
+                              minutes: result?.breakdown?.minutes || 0,
+                              hours: result?.breakdown?.hours || 0,
+                              startAt: timeIn.toISOString(),
+                              endAt: timeOut.toISOString(),
+                              cost: result?.breakdown?.rentalCost || 0
+                            },
+                            accessories: result?.breakdown?.accessories || [],
+                            package: packageInfo ? {
+                              name: packageInfo.name,
+                              totalHours: packageInfo.totalHours,
+                              bonusHours: packageInfo.bonusHours,
+                              price: packageInfo.price
+                            } : null,
+                            pricing: {
+                              rentalCost: result?.breakdown?.rentalCost || 0,
+                              accessoriesTotal: result?.breakdown?.accessoriesTotal || 0,
+                              packageTotal: packageInfo ? packageInfo.price : 0,
+                              subtotal: (result?.breakdown?.subtotal || 0) + (packageInfo ? packageInfo.price : 0),
+                              discount: manualDiscount,
+                              total: (result?.breakdown?.subtotal || 0) + (packageInfo ? packageInfo.price : 0) - manualDiscount
+                            },
+                            remainingMinutes: result?.breakdown?.remainingMinutes
+                          },
+                          bankInfo: result?.bank || null
+                        };
+
+                        // Generate invoice image
+                        const imageUrl = await generateInvoiceImage(invoiceData, {
+                          name: 'Thủ công',
+                          code: 'Thủ công',
+                          rental: {
+                            customer: customer,
+                            startAt: timeIn.toISOString()
+                          }
+                        });
+
+                        setInvoiceImageUrl(imageUrl);
+                        setShowInvoiceImageModal(true);
+                        setShowManualInvoiceModal(false);
+                        success('Đã tạo hóa đơn thành công!');
+                      } catch (err) {
+                        console.error('Error creating manual invoice:', err);
+                        error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
+                      } finally {
+                        setIsCreatingManualInvoice(false);
+                      }
+                    }}
+                  >
+                    {isCreatingManualInvoice ? 'Đang tạo...' : 'Xuất hóa đơn'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -618,6 +1196,7 @@ export default function BookingPage() {
                               const invoiceData = {
                                 code: settleResult?.invoice?.code || `INV-${Date.now()}`,
                                 customer: selectedTable?.rental?.customer,
+                                remainingMinutes: settleResult?.breakdown?.remainingMinutes,
                                 rental: {
                                   hours: settleResult?.breakdown?.hours || 0,
                                   minutes: settleResult?.breakdown?.minutes || 0,
@@ -656,14 +1235,23 @@ export default function BookingPage() {
                                     subtotal: settleResult?.breakdown?.subtotal || 0,
                                     discount: discount,
                                     total: settleResult?.breakdown?.total || 0
-                                  }
+                                  },
+                                  remainingMinutes: settleResult?.breakdown?.remainingMinutes
                                 },
                                 bankInfo: settleResult?.bank || await api.getBankInfo()
                               };
                               
+                              // Generate invoice as image
+                              const imageUrl = await generateInvoiceImage(invoiceData, selectedTable);
+                              
+                              // Set image URL and show modal
+                              setInvoiceImageUrl(imageUrl);
                               setInvoiceData(invoiceData);
+                              
+                              // Close pricing modal and show invoice image modal
                               setShowPricingModal(false);
-                              setShowInvoiceModal(true);
+                              setPricingResult(null);
+                              setShowInvoiceImageModal(true);
                               
                               // Refresh table status
                               try {
@@ -671,7 +1259,7 @@ export default function BookingPage() {
                                 setTables(Array.isArray(status) ? status : status?.data || []);
                               } catch {}
                               
-                              success(`Đã tính tiền thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
+                              success(`Đã tạo hóa đơn thành công! Tổng: ${settleResult?.breakdown?.total?.toLocaleString()}đ`);
                             } catch (err) {
                               console.error('Error creating invoice:', err);
                               error('Lỗi khi tạo hóa đơn: ' + (err as Error).message);
@@ -926,6 +1514,51 @@ export default function BookingPage() {
               </div>
             </div>
           </div>
+      )}
+
+      {/* Invoice Image Modal */}
+      {showInvoiceImageModal && invoiceImageUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  onClick={() => {
+                    setShowInvoiceImageModal(false);
+                    setInvoiceImageUrl(null);
+                    setInvoiceData(null);
+                    setSelectedTable(null);
+                    resetRentalForm();
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 items-center justify-center mb-4">
+                <img 
+                  src={invoiceImageUrl} 
+                  alt="Hóa đơn" 
+                  className="max-w-full h-auto border border-gray-300 rounded"
+                  style={{ maxHeight: '70vh' }}
+                />
+                <button 
+                  className="px-4 py-2 border rounded hover:bg-gray-100"
+                  onClick={() => {
+                    setShowInvoiceImageModal(false);
+                    setInvoiceImageUrl(null);
+                    setInvoiceData(null);
+                    setSelectedTable(null);
+                    resetRentalForm();
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Alert Modal */}
